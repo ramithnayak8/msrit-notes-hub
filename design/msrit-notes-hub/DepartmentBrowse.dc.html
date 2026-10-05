@@ -1,0 +1,240 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+  <style>
+    :root {
+      --bg: oklch(15% 0.025 264);
+      --surface: oklch(24% 0.03 264 / 0.55);
+      --surface-solid: oklch(21% 0.028 264);
+      --border: oklch(50% 0.03 264 / 0.35);
+      --border-soft: oklch(50% 0.03 264 / 0.18);
+      --text-primary: oklch(96% 0.008 264);
+      --text-secondary: oklch(75% 0.018 264);
+      --text-muted: oklch(54% 0.02 264);
+      --violet: oklch(68% 0.19 296);
+      --blue: oklch(66% 0.18 258);
+      --cyan: oklch(78% 0.13 200);
+      --grad: linear-gradient(90deg, var(--violet), var(--blue) 55%, var(--cyan));
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: "IBM Plex Sans", system-ui, sans-serif; }
+    a { color: var(--cyan); text-decoration: none; }
+    a:hover { color: var(--text-primary); }
+    h1, h2, h3 { font-family: "Space Grotesk", system-ui, sans-serif; margin: 0; }
+    p { margin: 0; }
+  </style>
+</helmet>
+
+<div style="position: relative; width: 1440px; min-height: 1000px; background: var(--bg); color: var(--text-primary); overflow: hidden;">
+
+  <div style="position: absolute; top: -260px; right: -200px; width: 640px; height: 640px; border-radius: 50%; background: radial-gradient(circle, oklch(66% 0.18 258 / 0.22), transparent 70%); filter: blur(70px); z-index: 0;"></div>
+
+  <!-- NAV -->
+  <div style="position: relative; z-index: 2; display: flex; align-items: center; justify-content: space-between; padding: 22px 64px; border-bottom: 1px solid var(--border-soft);">
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <div style="width: 32px; height: 32px; border-radius: 9px; background: var(--grad); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="oklch(15% 0.025 264)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+      </div>
+      <span style="font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 16px;">MSRIT Notes Hub</span>
+    </div>
+    <div style="display: flex; align-items: center; gap: 10px; width: 420px; padding: 9px 16px; border-radius: 10px; background: var(--surface-solid); border: 1px solid var(--border-soft);">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.35-4.35"/></svg>
+      <span style="font-size: 13.5px; color: var(--text-muted);">Search anything &mdash; "OS PYQs" or "DBMS notes"</span>
+    </div>
+    <div style="width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg, var(--violet), var(--cyan)); display: flex; align-items: center; justify-content: center; font-size: 12.5px; font-weight: 600; color: oklch(15% 0.025 264);">RS</div>
+  </div>
+
+  <!-- HEADER -->
+  <div style="position: relative; z-index: 2; padding: 48px 64px 8px;">
+    <div style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-muted);">
+      <span>Home</span>
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+      <span style="color: var(--text-secondary);">Departments</span>
+    </div>
+    <div style="display: flex; align-items: flex-end; justify-content: space-between; margin-top: 16px;">
+      <div>
+        <h1 style="font-size: 34px; font-weight: 700; letter-spacing: -0.6px;">Browse by department</h1>
+        <p style="margin-top: 8px; font-size: 15px; color: var(--text-secondary);">Pick a branch to see its full PYQ archive, notes and tracked syllabus.</p>
+      </div>
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <div style="display: flex; align-items: center; gap: 8px; padding: 9px 16px; border-radius: 10px; background: var(--surface-solid); border: 1px solid var(--border-soft); font-size: 13.5px; color: var(--text-secondary);">
+          Sort: Most active
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DEPT GRID -->
+  <div style="position: relative; z-index: 2; padding: 32px 64px 72px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px;">
+
+    <!-- CSE -->
+    <div style="padding: 26px; border-radius: 20px; background: var(--surface-solid); border: 1px solid var(--border);">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="width: 46px; height: 46px; border-radius: 13px; background: linear-gradient(135deg, oklch(68% 0.19 296), oklch(66% 0.18 258)); display: flex; align-items: center; justify-content: center; font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 15px; color: oklch(15% 0.025 264);">CS</div>
+        <span style="font-size: 11.5px; padding: 5px 10px; border-radius: 999px; background: oklch(76% 0.15 155 / 0.15); color: oklch(76% 0.15 155); font-weight: 600;">Active</span>
+      </div>
+      <h3 style="font-size: 18px; font-weight: 600; margin-top: 18px;">Computer Science</h3>
+      <p style="font-size: 13px; color: var(--text-muted); margin-top: 3px;">& Engineering</p>
+      <div style="display: flex; gap: 8px; margin-top: 18px;">
+        <span style="font-size: 12px; padding: 5px 10px; border-radius: 8px; background: var(--surface); border: 1px solid var(--border-soft); color: var(--text-secondary);">142 PYQs</span>
+        <span style="font-size: 12px; padding: 5px 10px; border-radius: 8px; background: var(--surface); border: 1px solid var(--border-soft); color: var(--text-secondary);">38 note sets</span>
+      </div>
+      <div style="margin-top: 18px; display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--cyan); font-weight: 500;">
+        View archive
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </div>
+    </div>
+
+    <!-- ISE -->
+    <div style="padding: 26px; border-radius: 20px; background: var(--surface-solid); border: 1px solid var(--border);">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="width: 46px; height: 46px; border-radius: 13px; background: linear-gradient(135deg, oklch(66% 0.18 258), oklch(78% 0.13 200)); display: flex; align-items: center; justify-content: center; font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 15px; color: oklch(15% 0.025 264);">IS</div>
+        <span style="font-size: 11.5px; padding: 5px 10px; border-radius: 999px; background: oklch(76% 0.15 155 / 0.15); color: oklch(76% 0.15 155); font-weight: 600;">Active</span>
+      </div>
+      <h3 style="font-size: 18px; font-weight: 600; margin-top: 18px;">Information Science</h3>
+      <p style="font-size: 13px; color: var(--text-muted); margin-top: 3px;">& Engineering</p>
+      <div style="display: flex; gap: 8px; margin-top: 18px;">
+        <span style="font-size: 12px; padding: 5px 10px; border-radius: 8px; background: var(--surface); border: 1px solid var(--border-soft); color: var(--text-secondary);">118 PYQs</span>
+        <span style="font-size: 12px; padding: 5px 10px; border-radius: 8px; background: var(--surface); border: 1px solid var(--border-soft); color: var(--text-secondary);">29 note sets</span>
+      </div>
+      <div style="margin-top: 18px; display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--cyan); font-weight: 500;">
+        View archive
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </div>
+    </div>
+
+    <!-- ECE -->
+    <div style="padding: 26px; border-radius: 20px; background: var(--surface-solid); border: 1px solid var(--border);">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="width: 46px; height: 46px; border-radius: 13px; background: linear-gradient(135deg, oklch(78% 0.13 200), oklch(68% 0.19 296)); display: flex; align-items: center; justify-content: center; font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 15px; color: oklch(15% 0.025 264);">EC</div>
+        <span style="font-size: 11.5px; padding: 5px 10px; border-radius: 999px; background: oklch(76% 0.15 155 / 0.15); color: oklch(76% 0.15 155); font-weight: 600;">Active</span>
+      </div>
+      <h3 style="font-size: 18px; font-weight: 600; margin-top: 18px;">Electronics</h3>
+      <p style="font-size: 13px; color: var(--text-muted); margin-top: 3px;">& Communication</p>
+      <div style="display: flex; gap: 8px; margin-top: 18px;">
+        <span style="font-size: 12px; padding: 5px 10px; border-radius: 8px; background: var(--surface); border: 1px solid var(--border-soft); color: var(--text-secondary);">96 PYQs</span>
+        <span style="font-size: 12px; padding: 5px 10px; border-radius: 8px; background: var(--surface); border: 1px solid var(--border-soft); color: var(--text-secondary);">21 note sets</span>
+      </div>
+      <div style="margin-top: 18px; display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--cyan); font-weight: 500;">
+        View archive
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </div>
+    </div>
+
+    <!-- EEE -->
+    <div style="padding: 26px; border-radius: 20px; background: var(--surface-solid); border: 1px solid var(--border);">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="width: 46px; height: 46px; border-radius: 13px; background: linear-gradient(135deg, oklch(70% 0.16 40), oklch(75% 0.14 80)); display: flex; align-items: center; justify-content: center; font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 15px; color: oklch(15% 0.025 264);">EE</div>
+        <span style="font-size: 11.5px; padding: 5px 10px; border-radius: 999px; background: oklch(70% 0.16 90 / 0.18); color: oklch(78% 0.15 90); font-weight: 600;">Growing</span>
+      </div>
+      <h3 style="font-size: 18px; font-weight: 600; margin-top: 18px;">Electrical</h3>
+      <p style="font-size: 13px; color: var(--text-muted); margin-top: 3px;">& Electronics</p>
+      <div style="display: flex; gap: 8px; margin-top: 18px;">
+        <span style="font-size: 12px; padding: 5px 10px; border-radius: 8px; background: var(--surface); border: 1px solid var(--border-soft); color: var(--text-secondary);">64 PYQs</span>
+        <span style="font-size: 12px; padding: 5px 10px; border-radius: 8px; background: var(--surface); border: 1px solid var(--border-soft); color: var(--text-secondary);">14 note sets</span>
+      </div>
+      <div style="margin-top: 18px; display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--cyan); font-weight: 500;">
+        View archive
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </div>
+    </div>
+
+    <!-- Mechanical -->
+    <div style="padding: 26px; border-radius: 20px; background: var(--surface-solid); border: 1px solid var(--border);">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="width: 46px; height: 46px; border-radius: 13px; background: linear-gradient(135deg, oklch(72% 0.16 25), oklch(70% 0.15 340)); display: flex; align-items: center; justify-content: center; font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 15px; color: oklch(15% 0.025 264);">ME</div>
+        <span style="font-size: 11.5px; padding: 5px 10px; border-radius: 999px; background: oklch(70% 0.16 90 / 0.18); color: oklch(78% 0.15 90); font-weight: 600;">Growing</span>
+      </div>
+      <h3 style="font-size: 18px; font-weight: 600; margin-top: 18px;">Mechanical</h3>
+      <p style="font-size: 13px; color: var(--text-muted); margin-top: 3px;">Engineering</p>
+      <div style="display: flex; gap: 8px; margin-top: 18px;">
+        <span style="font-size: 12px; padding: 5px 10px; border-radius: 8px; background: var(--surface); border: 1px solid var(--border-soft); color: var(--text-secondary);">58 PYQs</span>
+        <span style="font-size: 12px; padding: 5px 10px; border-radius: 8px; background: var(--surface); border: 1px solid var(--border-soft); color: var(--text-secondary);">11 note sets</span>
+      </div>
+      <div style="margin-top: 18px; display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--cyan); font-weight: 500;">
+        View archive
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </div>
+    </div>
+
+    <!-- Civil -->
+    <div style="padding: 26px; border-radius: 20px; background: var(--surface-solid); border: 1px solid var(--border);">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="width: 46px; height: 46px; border-radius: 13px; background: linear-gradient(135deg, oklch(74% 0.13 165), oklch(78% 0.13 200)); display: flex; align-items: center; justify-content: center; font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 15px; color: oklch(15% 0.025 264);">CV</div>
+        <span style="font-size: 11.5px; padding: 5px 10px; border-radius: 999px; background: oklch(70% 0.16 90 / 0.18); color: oklch(78% 0.15 90); font-weight: 600;">Growing</span>
+      </div>
+      <h3 style="font-size: 18px; font-weight: 600; margin-top: 18px;">Civil Engineering</h3>
+      <p style="font-size: 13px; color: var(--text-muted); margin-top: 3px;">&nbsp;</p>
+      <div style="display: flex; gap: 8px; margin-top: 18px;">
+        <span style="font-size: 12px; padding: 5px 10px; border-radius: 8px; background: var(--surface); border: 1px solid var(--border-soft); color: var(--text-secondary);">41 PYQs</span>
+        <span style="font-size: 12px; padding: 5px 10px; border-radius: 8px; background: var(--surface); border: 1px solid var(--border-soft); color: var(--text-secondary);">9 note sets</span>
+      </div>
+      <div style="margin-top: 18px; display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--cyan); font-weight: 500;">
+        View archive
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </div>
+    </div>
+
+    <!-- AI & ML -->
+    <div style="padding: 26px; border-radius: 20px; background: var(--surface-solid); border: 1px solid var(--border);">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="width: 46px; height: 46px; border-radius: 13px; background: linear-gradient(135deg, oklch(68% 0.19 296), oklch(78% 0.13 200)); display: flex; align-items: center; justify-content: center; font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 14px; color: oklch(15% 0.025 264);">AI</div>
+        <span style="font-size: 11.5px; padding: 5px 10px; border-radius: 999px; background: oklch(76% 0.15 155 / 0.15); color: oklch(76% 0.15 155); font-weight: 600;">Active</span>
+      </div>
+      <h3 style="font-size: 18px; font-weight: 600; margin-top: 18px;">AI & Machine Learning</h3>
+      <p style="font-size: 13px; color: var(--text-muted); margin-top: 3px;">&nbsp;</p>
+      <div style="display: flex; gap: 8px; margin-top: 18px;">
+        <span style="font-size: 12px; padding: 5px 10px; border-radius: 8px; background: var(--surface); border: 1px solid var(--border-soft); color: var(--text-secondary);">73 PYQs</span>
+        <span style="font-size: 12px; padding: 5px 10px; border-radius: 8px; background: var(--surface); border: 1px solid var(--border-soft); color: var(--text-secondary);">19 note sets</span>
+      </div>
+      <div style="margin-top: 18px; display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--cyan); font-weight: 500;">
+        View archive
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </div>
+    </div>
+
+    <!-- Biotechnology -->
+    <div style="padding: 26px; border-radius: 20px; background: var(--surface-solid); border: 1px solid var(--border);">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="width: 46px; height: 46px; border-radius: 13px; background: linear-gradient(135deg, oklch(74% 0.13 165), oklch(76% 0.15 130)); display: flex; align-items: center; justify-content: center; font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 14px; color: oklch(15% 0.025 264);">BT</div>
+        <span style="font-size: 11.5px; padding: 5px 10px; border-radius: 999px; background: var(--surface); color: var(--text-muted); font-weight: 600; border: 1px solid var(--border-soft);">Coming soon</span>
+      </div>
+      <h3 style="font-size: 18px; font-weight: 600; margin-top: 18px;">Biotechnology</h3>
+      <p style="font-size: 13px; color: var(--text-muted); margin-top: 3px;">&nbsp;</p>
+      <div style="display: flex; gap: 8px; margin-top: 18px;">
+        <span style="font-size: 12px; padding: 5px 10px; border-radius: 8px; background: var(--surface); border: 1px solid var(--border-soft); color: var(--text-muted);">Not yet indexed</span>
+      </div>
+      <div style="margin-top: 18px; display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-muted); font-weight: 500;">
+        Notify me
+      </div>
+    </div>
+
+    <!-- MBA -->
+    <div style="padding: 26px; border-radius: 20px; background: var(--surface-solid); border: 1px solid var(--border);">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="width: 46px; height: 46px; border-radius: 13px; background: linear-gradient(135deg, oklch(70% 0.15 340), oklch(68% 0.19 296)); display: flex; align-items: center; justify-content: center; font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 15px; color: oklch(15% 0.025 264);">MB</div>
+        <span style="font-size: 11.5px; padding: 5px 10px; border-radius: 999px; background: var(--surface); color: var(--text-muted); font-weight: 600; border: 1px solid var(--border-soft);">Coming soon</span>
+      </div>
+      <h3 style="font-size: 18px; font-weight: 600; margin-top: 18px;">MBA</h3>
+      <p style="font-size: 13px; color: var(--text-muted); margin-top: 3px;">&nbsp;</p>
+      <div style="display: flex; gap: 8px; margin-top: 18px;">
+        <span style="font-size: 12px; padding: 5px 10px; border-radius: 8px; background: var(--surface); border: 1px solid var(--border-soft); color: var(--text-muted);">Not yet indexed</span>
+      </div>
+      <div style="margin-top: 18px; display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-muted); font-weight: 500;">
+        Notify me
+      </div>
+    </div>
+
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

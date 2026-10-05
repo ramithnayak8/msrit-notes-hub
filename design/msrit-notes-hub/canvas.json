@@ -1,0 +1,13 @@
+{
+  "artboards": [
+    { "file": "Main.dc.html", "x": 0, "y": 0, "w": 1440, "h": 3120 },
+    { "file": "DepartmentBrowse.dc.html", "x": 1560, "y": 0, "w": 1440, "h": 1060 },
+    { "file": "AIChat.dc.html", "x": 3040, "y": 0, "w": 1440, "h": 1000 }
+  ],
+  "annotations": [
+    { "id": "note-landing", "x": 0, "y": -100, "w": 400, "text": "Landing page — hero, feature bento grid, footer/CTA" },
+    { "id": "note-departments", "x": 1560, "y": -100, "w": 400, "text": "App screen — browse by department" },
+    { "id": "note-chat", "x": 3040, "y": -100, "w": 400, "text": "App screen — AI study chatbot with PYQ-cited answers" }
+  ],
+  "launch": { "view": "focused", "file": "Main.dc.html" }
+}
