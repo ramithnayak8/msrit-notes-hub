@@ -35,7 +35,7 @@ export function QuestionResult({ hit, rank }: { hit: QuestionHit; rank: number }
         <span className="relevance">{hit.score}% match</span>
       </div>
 
-      <p className="result-text">{highlight(hit.text, hit.matchedTerms)}</p>
+      <p className="result-text reading">{highlight(hit.text, hit.matchedTerms)}</p>
 
       <div className="result-meta">
         <span className="tag">{hit.examType} · {hit.month} {hit.year}</span>

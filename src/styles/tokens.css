@@ -1,0 +1,189 @@
+/*
+ * Design tokens. Every colour, size and timing the UI uses lives here.
+ * Themes redefine the colour roles on [data-theme]; the names stay the same,
+ * so components never branch on theme.
+ */
+
+:root {
+  /* Type */
+  --font-ui: var(--font-body), system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-head: var(--font-display), 'Cormorant Garamond', Georgia, serif;
+  --font-read: var(--font-reading), Georgia, serif;
+  --font-code: var(--font-mono), ui-monospace, monospace;
+
+  --text-2xs: 11px;
+  --text-xs: 12px;
+  --text-sm: 13.5px;
+  --text-base: 16px;
+  --text-md: 17px;
+  --text-lg: 19px;
+  --text-reading: clamp(16.5px, 0.4vw + 15px, 18px);
+  --text-h4: 16px;
+  --text-h3: 23px;
+  --text-h2: clamp(30px, 2.2vw + 22px, 42px);
+  --text-h1: clamp(40px, 4.4vw + 24px, 72px);
+
+  /* Space (4px base) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+  --gutter: 16px;
+
+  /* Shape */
+  --radius-sm: 6px;
+  --radius: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-pill: 999px;
+  --maxw: 1200px;
+  --maxw-narrow: 820px;
+  --masthead-h: 64px;
+
+  /* Motion */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-1: 140ms;
+  --dur-2: 260ms;
+  --dur-3: 520ms;
+  --dur-4: 900ms;
+
+  /* Layers */
+  --z-ambience: 0;
+  --z-content: 1;
+  --z-masthead: 50;
+  --z-overlay: 80;
+  --z-dialog: 90;
+  --z-loader: 100;
+
+  /* Night palette, shared by the dark theme and by surfaces that are always dark (the hero). */
+  --navy-950: oklch(11% 0.03 262);
+  --navy-900: oklch(15.5% 0.032 262);
+  --navy-850: oklch(18.5% 0.034 262);
+  --navy-800: oklch(22% 0.036 262);
+  --cream-100: oklch(95% 0.022 85);
+  --cream-200: oklch(85% 0.024 85);
+  --cream-300: oklch(72% 0.022 85);
+  --gold-300: oklch(88% 0.1 86);
+  --gold-400: oklch(82% 0.115 82);
+  --gold-500: oklch(74% 0.125 76);
+}
+
+@media (min-width: 680px) {
+  :root { --gutter: 32px; }
+}
+
+@media (min-width: 1100px) {
+  :root { --gutter: 40px; }
+}
+
+/* ── Dark: "Night library" (default) ───────────────────────────── */
+
+:root,
+[data-theme='dark'],
+.on-dark {
+  color-scheme: dark;
+  --bg: var(--navy-900);
+  --bg-deep: var(--navy-950);
+  --paper: var(--bg);
+  --surface: oklch(19.5% 0.034 262 / 0.9);
+  --surface-solid: var(--navy-850);
+  --surface-raised: oklch(23% 0.036 262 / 0.96);
+  --surface-sunk: oklch(16.5% 0.03 262 / 0.82);
+  --ink: var(--cream-100);
+  --ink-soft: var(--cream-200);
+  --ink-muted: var(--cream-300);
+  --rule: oklch(95% 0.022 85 / 0.1);
+  --rule-strong: oklch(95% 0.022 85 / 0.2);
+  --accent: var(--gold-400);
+  --accent-hover: var(--gold-300);
+  --accent-ink: var(--navy-950);
+  --accent-soft: oklch(82% 0.115 82 / 0.13);
+  --accent-line: oklch(82% 0.115 82 / 0.32);
+  --positive: oklch(81% 0.13 155);
+  --positive-soft: oklch(81% 0.13 155 / 0.13);
+  --negative: oklch(76% 0.14 25);
+  --negative-soft: oklch(76% 0.14 25 / 0.13);
+  --amber: oklch(84% 0.12 75);
+  --amber-soft: oklch(84% 0.12 75 / 0.14);
+  --mark: oklch(82% 0.115 82 / 0.3);
+  --glow: oklch(82% 0.115 82 / 0.34);
+  --veil: oklch(12.5% 0.03 262 / 0.58);
+  --shadow-1: 0 1px 2px oklch(0% 0 0 / 0.3), 0 4px 14px oklch(0% 0 0 / 0.22);
+  --shadow-2: 0 2px 6px oklch(0% 0 0 / 0.3), 0 18px 48px oklch(0% 0 0 / 0.38);
+}
+
+/* ── Light: "Parchment" ────────────────────────────────────────── */
+
+[data-theme='light'] {
+  color-scheme: light;
+  --bg: oklch(96.5% 0.018 85);
+  --bg-deep: oklch(93% 0.022 85);
+  --paper: var(--bg);
+  --surface: oklch(99.2% 0.008 85 / 0.93);
+  --surface-solid: oklch(99.2% 0.008 85);
+  --surface-raised: oklch(100% 0 0 / 0.97);
+  --surface-sunk: oklch(94.5% 0.02 85 / 0.9);
+  --ink: oklch(24% 0.035 262);
+  --ink-soft: oklch(37% 0.03 262);
+  --ink-muted: oklch(48% 0.025 262);
+  --rule: oklch(24% 0.035 262 / 0.11);
+  --rule-strong: oklch(24% 0.035 262 / 0.22);
+  --accent: oklch(47% 0.11 68);
+  --accent-hover: oklch(40% 0.1 66);
+  --accent-ink: oklch(99% 0.008 85);
+  --accent-soft: oklch(47% 0.11 68 / 0.1);
+  --accent-line: oklch(47% 0.11 68 / 0.3);
+  --positive: oklch(45% 0.11 150);
+  --positive-soft: oklch(45% 0.11 150 / 0.1);
+  --negative: oklch(48% 0.16 25);
+  --negative-soft: oklch(48% 0.16 25 / 0.09);
+  --amber: oklch(50% 0.11 70);
+  --amber-soft: oklch(50% 0.11 70 / 0.12);
+  --mark: oklch(86% 0.13 90 / 0.6);
+  --glow: oklch(70% 0.12 75 / 0.28);
+  --veil: oklch(96.5% 0.018 85 / 0.8);
+  --shadow-1: 0 1px 2px oklch(30% 0.03 262 / 0.07), 0 4px 14px oklch(30% 0.03 262 / 0.06);
+  --shadow-2: 0 2px 6px oklch(30% 0.03 262 / 0.08), 0 18px 48px oklch(30% 0.03 262 / 0.12);
+}
+
+/* ── Sepia: "Reading" ─────────────────────────────────────────── */
+
+[data-theme='sepia'] {
+  color-scheme: light;
+  --bg: oklch(90% 0.035 78);
+  --bg-deep: oklch(86% 0.04 76);
+  --paper: var(--bg);
+  --surface: oklch(93.5% 0.03 80 / 0.94);
+  --surface-solid: oklch(93.5% 0.03 80);
+  --surface-raised: oklch(95.5% 0.026 80 / 0.97);
+  --surface-sunk: oklch(88% 0.04 76 / 0.9);
+  --ink: oklch(28% 0.045 55);
+  --ink-soft: oklch(37% 0.045 55);
+  --ink-muted: oklch(45% 0.04 60);
+  --rule: oklch(28% 0.045 55 / 0.13);
+  --rule-strong: oklch(28% 0.045 55 / 0.24);
+  --accent: oklch(46% 0.12 42);
+  --accent-hover: oklch(39% 0.11 40);
+  --accent-ink: oklch(97% 0.02 80);
+  --accent-soft: oklch(46% 0.12 42 / 0.1);
+  --accent-line: oklch(46% 0.12 42 / 0.3);
+  --positive: oklch(43% 0.1 140);
+  --positive-soft: oklch(43% 0.1 140 / 0.11);
+  --negative: oklch(46% 0.15 28);
+  --negative-soft: oklch(46% 0.15 28 / 0.1);
+  --amber: oklch(47% 0.1 70);
+  --amber-soft: oklch(47% 0.1 70 / 0.13);
+  --mark: oklch(80% 0.12 80 / 0.55);
+  --glow: oklch(60% 0.12 50 / 0.25);
+  --veil: oklch(90% 0.035 78 / 0.82);
+  --shadow-1: 0 1px 2px oklch(30% 0.05 55 / 0.08), 0 4px 14px oklch(30% 0.05 55 / 0.07);
+  --shadow-2: 0 2px 6px oklch(30% 0.05 55 / 0.1), 0 18px 48px oklch(30% 0.05 55 / 0.14);
+}

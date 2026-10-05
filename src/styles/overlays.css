@@ -1,0 +1,100 @@
+/* Dialogs, sheets and the choice controls inside them. */
+
+.sheet {
+  border: none;
+  padding: 0;
+  margin: 0;
+  max-width: none;
+  max-height: none;
+  background: transparent;
+  color: var(--ink);
+}
+.sheet::backdrop {
+  background: oklch(8% 0.02 262 / 0.55);
+  backdrop-filter: blur(3px);
+  animation: fadeBackdrop var(--dur-2) ease both;
+}
+.sheet-body {
+  background: var(--surface-solid);
+  border: 1px solid var(--rule-strong);
+  box-shadow: var(--shadow-2);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+@keyframes fadeBackdrop { from { opacity: 0; } to { opacity: 1; } }
+
+/* Side sheet: bottom sheet on phones, right-hand panel from tablet up. */
+.sheet-side { position: fixed; inset: auto 0 0 0; width: 100%; }
+.sheet-side .sheet-body {
+  max-height: 86dvh;
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  padding: var(--space-5) var(--gutter) calc(var(--space-8) + env(safe-area-inset-bottom));
+  animation: sheetUp var(--dur-3) var(--ease-out) both;
+}
+@media (min-width: 680px) {
+  .sheet-side { inset: 12px 12px 12px auto; width: min(420px, calc(100vw - 24px)); height: calc(100dvh - 24px); }
+  .sheet-side .sheet-body {
+    height: 100%; max-height: none;
+    border-radius: var(--radius-xl);
+    padding: var(--space-6);
+    animation: sheetIn var(--dur-3) var(--ease-out) both;
+  }
+}
+@keyframes sheetUp { from { transform: translateY(100%); } to { transform: none; } }
+@keyframes sheetIn { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: none; } }
+
+.sheet-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: var(--space-6); }
+.sheet-title { font-size: 34px; margin-top: 8px; }
+
+.choice-group { border: none; padding: 0; margin: 0 0 var(--space-8); min-width: 0; }
+.choice-group > legend { padding: 0; margin-bottom: 12px; }
+
+/* Radio inputs stay in the accessibility tree; the visual is the label. */
+.theme-choice input, .segment input, .scene-choice input {
+  position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none;
+}
+
+.theme-choices { display: grid; gap: 8px; }
+.theme-choice {
+  position: relative;
+  display: flex; align-items: center; gap: 14px;
+  padding: 10px 14px 10px 10px;
+  border-radius: var(--radius);
+  border: 1px solid var(--rule);
+  background: var(--surface-sunk);
+  cursor: pointer;
+  transition: border-color var(--dur-1) ease, background-color var(--dur-1) ease;
+}
+.theme-choice:hover { border-color: var(--rule-strong); }
+.theme-choice:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+.theme-choice:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+.theme-choice-text { display: flex; flex-direction: column; line-height: 1.35; }
+.theme-choice-name { font-weight: 600; font-size: 14px; }
+.theme-swatch {
+  width: 42px; height: 42px; border-radius: var(--radius-sm);
+  border: 1px solid var(--rule-strong);
+  flex-shrink: 0;
+}
+[data-swatch='dark'] .theme-swatch { background: linear-gradient(135deg, oklch(15.5% 0.032 262) 55%, oklch(82% 0.115 82) 55%); }
+[data-swatch='light'] .theme-swatch { background: linear-gradient(135deg, oklch(96.5% 0.018 85) 55%, oklch(47% 0.11 68) 55%); }
+[data-swatch='sepia'] .theme-swatch { background: linear-gradient(135deg, oklch(90% 0.035 78) 55%, oklch(46% 0.12 42) 55%); }
+
+.segmented {
+  display: grid; grid-auto-flow: column; grid-auto-columns: 1fr;
+  padding: 4px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--rule);
+  background: var(--surface-sunk);
+}
+.segment { position: relative; cursor: pointer; }
+.segment span {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  min-height: 36px;
+  border-radius: var(--radius-pill);
+  font-size: 13px; font-weight: 600;
+  color: var(--ink-soft);
+  transition: background-color var(--dur-1) ease, color var(--dur-1) ease;
+}
+.segment:hover span { color: var(--ink); }
+.segment input:checked + span { background: var(--accent); color: var(--accent-ink); }
+.segment input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
