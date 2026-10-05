@@ -5,11 +5,13 @@ import { Footer } from '@/components/layout/Footer';
 import { StudyRoomProvider } from '@/components/study/StudyRoomProvider';
 import { StudyRoomPanel } from '@/components/study/StudyRoomPanel';
 import { BOOT_SCRIPT } from '@/lib/client/prefs';
+import { INTRO_BOOT } from '@/lib/client/intro';
 import './globals.css';
 
+// Each weight/style pair is a separate file, so display type sticks to one weight.
 const display = Cormorant_Garamond({
   subsets: ['latin'],
-  weight: ['500', '600', '700'],
+  weight: ['600'],
   style: ['normal', 'italic'],
   variable: '--font-display',
   display: 'swap',
@@ -23,7 +25,6 @@ const body = Inter({
 
 const reading = Source_Serif_4({
   subsets: ['latin'],
-  weight: ['400', '600'],
   variable: '--font-reading',
   display: 'swap',
   preload: false,
@@ -79,10 +80,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       className={`${display.variable} ${body.variable} ${reading.variable} ${mono.variable}`}
       suppressHydrationWarning
     >
-      <head>
-        <script dangerouslySetInnerHTML={{ __html: BOOT_SCRIPT }} />
-      </head>
       <body>
+        {/* Blocking and first in <body>: applies theme and effects before anything paints. */}
+        <script dangerouslySetInnerHTML={{ __html: BOOT_SCRIPT + INTRO_BOOT }} />
         <a href="#main" className="skip-link">Skip to content</a>
         <StudyRoomProvider>
           <div className="site">

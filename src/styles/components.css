@@ -31,7 +31,7 @@
   display: grid; place-items: center;
   flex-shrink: 0;
   font-family: var(--font-head);
-  font-weight: 700;
+  font-weight: 600;
   font-size: 19px;
   line-height: 1;
   color: var(--accent);
@@ -40,7 +40,7 @@
   box-shadow: inset 0 0 0 3px var(--surface-solid), inset 0 0 0 4px var(--accent-line);
 }
 .brand-text { display: flex; flex-direction: column; line-height: 1.1; min-width: 0; }
-.brand-name { font-family: var(--font-head); font-weight: 700; font-size: 21px; letter-spacing: 0.005em; }
+.brand-name { font-family: var(--font-head); font-weight: 600; font-size: 21px; letter-spacing: 0.005em; }
 .brand-sub {
   font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-muted);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
@@ -455,6 +455,10 @@
 
 @media (min-width: 680px) { .footer-cols { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 36px; } }
 @media (min-width: 1000px) { .footer-cols { grid-template-columns: 1.6fr 1fr 1fr 1fr; gap: 40px; } }
+
+/* Below-the-fold sections skip layout and paint until they approach the viewport.
+   This keeps the web-font swap cheap on long pages. */
+.defer-render { content-visibility: auto; contain-intrinsic-size: auto 720px; }
 
 /* ── Page header ──────────────────────────────────────────────── */
 

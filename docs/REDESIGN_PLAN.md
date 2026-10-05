@@ -138,4 +138,29 @@ reuses the existing `getDepartments()` and `getAllCourses()` queries. Nothing ex
 
 ## 6. Changelog
 
-_Filled in as phases land._
+### Phase 2: design system
+- Tokens split into `src/styles/{tokens,base,components,overlays}.css`. Existing token names
+  kept, so pages restyled without touching their markup.
+- Three themes (night, parchment, sepia) plus an effects level (auto, full, lite, still),
+  applied by an inline boot script before first paint.
+- New masthead with a mobile menu; study room settings sheet on native `<dialog>`.
+- Skip link, focus-visible rings, reduced-motion rules, favicon, working `npm run lint`.
+
+### Phase 3: hero
+- `src/components/hero/`: CSS scene (paints with the HTML, permanent fallback), lazy
+  react-three-fiber library scene on top, transform-only entrance so the headline is the LCP
+  element at first paint, CSS-timed intro loader (1.3 s, once per session, skippable).
+- 3D scene: 72 instanced books in 3 draw calls, light shafts as additive shader cones, shader
+  dust with depth-scaled size, floating pages, camera dolly on load, scroll fly-through,
+  damped pointer parallax. Bloom and vignette on desktop. An adaptive monitor drops
+  post-processing, then pixel ratio, if frames run slow. Rendering pauses off-screen and in
+  hidden tabs; R3F disposes the renderer when effects are turned down.
+- Loading policy: desktop loads at idle; touch or narrow screens load on first interaction.
+  The WebGL2 probe runs only then, because creating a GL context is expensive on weak GPUs.
+- `next.config.mjs` sets `htmlLimitedBots: /.*/` so title, description and Open Graph tags
+  are in `<head>` for every client. Next 15 otherwise streams them into `<body>`, which
+  link-preview crawlers and SEO audits do not read.
+- Display type reduced to one weight (normal + italic), and long home sections use
+  `content-visibility: auto`. Both cut the cost of the web-font swap relayout, which was the
+  main source of blocking time.
+- Lighthouse mobile, home: Performance 88 to 91, Accessibility 100, Best Practices 100, SEO 100.

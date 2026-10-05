@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { SearchBox, ExampleQueries } from '@/components/SearchBox';
+import { Hero } from '@/components/hero/Hero';
 import { QuestionResult } from '@/components/QuestionResult';
 import { getStats, getYearRange, getDepartments, diffSyllabus } from '@/lib/db';
 import { searchQuestions } from '@/lib/search';
@@ -22,33 +22,10 @@ export default function HomePage() {
 
   return (
     <main>
-      {/* Hero */}
-      <section style={{ padding: '60px 0 44px' }}>
-        <div className="shell">
-          <div style={{ maxWidth: 760 }}>
-            <div className="label">Ramaiah Institute of Technology · Topic-aware retrieval</div>
-            <h1 style={{ marginTop: 18, maxWidth: 680, textWrap: 'balance' }}>
-              Question papers indexed by concept, not by subject code.
-            </h1>
-            <p className="lead" style={{ marginTop: 20 }}>
-              Every previous year paper, note set and syllabus scheme in one index — searchable by
-              what a question is <em>about</em>, so a topic can be found regardless of which course
-              or year it was taught under. Ask in plain English and get the exact questions, cited
-              back to their source paper, year and question number.
-            </p>
-          </div>
-
-          <div style={{ maxWidth: 760, marginTop: 32 }}>
-            <SearchBox large />
-            <div style={{ marginTop: 14 }}>
-              <ExampleQueries queries={EXAMPLES} />
-            </div>
-          </div>
-        </div>
-      </section>
+      <Hero examples={EXAMPLES} />
 
       {/* Statistics */}
-      <section style={{ paddingBottom: 40 }}>
+      <section id="archive" style={{ padding: '48px 0 40px' }}>
         <div className="shell">
           <div className="panel panel-pad">
             <div className="stats">
@@ -74,7 +51,7 @@ export default function HomePage() {
       </section>
 
       {/* Differentiators */}
-      <section className="section">
+      <section className="section defer-render">
         <div className="shell">
           <div style={{ maxWidth: 640 }}>
             <h2>Built differently from a spreadsheet of Drive links</h2>
@@ -116,7 +93,7 @@ export default function HomePage() {
       </section>
 
       {/* Worked example */}
-      <section className="section rule-top">
+      <section className="section rule-top defer-render">
         <div className="shell">
           <div className="row between wrap gap-16" style={{ alignItems: 'flex-end' }}>
             <div style={{ maxWidth: 560 }}>
@@ -155,7 +132,7 @@ export default function HomePage() {
 
       {/* Syllabus change */}
       {diff && (
-        <section className="section rule-top">
+        <section className="section rule-top defer-render">
           <div className="shell">
             <div className="grid-2" style={{ gap: 48, alignItems: 'start' }}>
               <div>
@@ -210,7 +187,7 @@ export default function HomePage() {
       )}
 
       {/* Branches */}
-      <section className="section rule-top">
+      <section className="section rule-top defer-render">
         <div className="shell">
           <div className="row between wrap gap-16" style={{ alignItems: 'flex-end' }}>
             <div>
@@ -241,7 +218,7 @@ export default function HomePage() {
       </section>
 
       {/* Assistant */}
-      <section className="section rule-top">
+      <section className="section rule-top defer-render">
         <div className="shell-narrow center">
           <div className="label">Study assistant</div>
           <h2 style={{ marginTop: 12 }}>Ask the archive what to revise</h2>

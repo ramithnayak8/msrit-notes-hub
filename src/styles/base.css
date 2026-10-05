@@ -3,6 +3,8 @@
 *, *::before, *::after { box-sizing: border-box; }
 
 html {
+  /* Resolved here so surfaces that force the night palette can still reach the page colour. */
+  --page-bg: var(--bg);
   background: var(--bg);
   color: var(--ink);
   -webkit-text-size-adjust: 100%;

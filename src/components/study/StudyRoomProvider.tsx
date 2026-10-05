@@ -9,6 +9,7 @@ import {
   type Effects,
   type Prefs,
 } from '@/lib/client/prefs';
+import { consumeIntro } from '@/lib/client/intro';
 
 export type Overlay = 'palette' | 'room' | 'focus' | null;
 
@@ -34,6 +35,7 @@ export function StudyRoomProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     setPrefs(loadPrefs());
     setReady(true);
+    return consumeIntro();
   }, []);
 
   // The boot script already applied stored values before paint; from here on
@@ -45,9 +47,13 @@ export function StudyRoomProvider({ children }: { children: React.ReactNode }) {
     const apply = () => {
       const resolved = resolveEffects(prefs.effects);
       setEffects(resolved);
-      root.dataset.theme = prefs.theme;
-      root.dataset.ambience = prefs.ambience;
-      root.dataset.effects = resolved;
+      // Writing an unchanged attribute on <html> still restyles the whole page.
+      const set = (key: string, value: string) => {
+        if (root.dataset[key] !== value) root.dataset[key] = value;
+      };
+      set('theme', prefs.theme);
+      set('ambience', prefs.ambience);
+      set('effects', resolved);
     };
     apply();
     savePrefs(prefs);
