@@ -104,12 +104,11 @@ const BRANCHES: [RegExp, string][] = [
   [/biotechnology/i, 'BT'],
 ];
 
-const COURSE_CODE = /\b(\d{0,2}[A-Z]{2,6}\d{2,3}[A-Z]?)\b/;
-
 /** A header line that holds a "Label : value" field, as opposed to a wrapped value. */
-const LABELLED = /\b(program(me)?|semester|course|subject|max\s*\.?\s*marks|duration|instructions|usn|branch|credits|term|date)\b.*:|^(course|subject)\s*code|instructions/i;
+// "Durat[il]on": OCR'd text layers misread the i ("Duratlon").
+const LABELLED = /\b(program(me)?|semester|course|subject|max\s*\.?\s*marks|durat[il1]on|instructions|usn|branch|credits|term|date)\b.*:|^(course|subject)\s*code|^max\s*\.?\s*marks|instructions/i;
 /** Other fields printed on the same line as the one we want, to cut off. */
-const OTHER_FIELDS = /\s*(Max\s*\.?\s*Marks|Semester|Duration|Course\s*Code|Subject\s*Code|CourseCode)\b.*$/i;
+const OTHER_FIELDS = /\s*(Max\s*\.?\s*Marks|Semester|Durat[il1]on|Course\s*Code|Subject\s*Code|CourseCode)\b.*$/i;
 
 /**
  * Read a header field. In the MSRIT template the value cell is vertically
@@ -122,9 +121,12 @@ function headerField(lines: string[], label: RegExp): string | undefined {
   if (i < 0) return undefined;
   const own = lines[i]!.replace(new RegExp(`^.*?(?:${label.source})\\s*[:.]?\\s*:?`, 'i'), '').replace(OTHER_FIELDS, '').replace(/^[:\s]+|[:\s]+$/g, '');
   const before = lines[i - 1]?.trim() ?? '';
-  const after = lines[i + 1]?.trim() ?? '';
+  let after = lines[i + 1]?.trim() ?? '';
+  // The other column's label can sit between a value and its wrapped tail:
+  // "Course Name  Research Methodology and Intellectual" / "Max. Marks : 100" / "Property Rights".
+  if (/^max\s*\.?\s*marks/i.test(after)) after = lines[i + 2]?.trim() ?? '';
   const free = (l: string) => l.length > 1 && !LABELLED.test(l) && !/^(USN|RAMAIAH|\(|Accredited|SEMESTER END)/i.test(l);
-  // A value that is empty or starts with "/" or ends mid-phrase continues from the line above.
+  // A value that is empty or starts with "/" continues from the line above.
   const needsBefore = own === '' || own.startsWith('/');
   const parts = [needsBefore && free(before) ? before : '', own, free(after) ? after : ''];
   const value = parts.filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
@@ -137,10 +139,11 @@ export function extractHeaderMeta(header: string): HeaderMeta {
   const lines = flat.split('\n').map((l) => l.trim());
 
   // "EI52/EI52(O)" and "CI33 / CY33" are shared papers; the first code is the primary one.
-  const codeField = flat.match(/(?:Course|Subject)\s*Code\s*:?\s*:?\s*([A-Z0-9]{4,12})/i)?.[1];
-  const firstLine = lines[0]?.toUpperCase().match(/^(\d{0,2}[A-Z]{2,6}\d{2,3}[A-Z]?)\b/)?.[1];
-  const code = codeField?.toUpperCase() ?? firstLine;
-  if (code && COURSE_CODE.test(code)) meta.courseCode = code;
+  // "21/22/23/AL58" lists scheme years before the code, so take the first token that has letters.
+  const firstCode = (s: string | undefined) => s?.toUpperCase().match(/\b(\d{0,2}[A-Z]{2,6}\d{2,3}[A-Z]?)\b/)?.[1];
+  const codeLine = flat.match(/(?:Course|Subject)\s*Code\s*:?\s*:?\s*([^\n]*)/i)?.[1]?.replace(OTHER_FIELDS, '');
+  const code = firstCode(codeLine) ?? firstCode(lines[0]);
+  if (code) meta.courseCode = code;
 
   const title = headerField(lines, /(?:Course|Subject)\s*Name|^Subject(?!\s*Code)/i);
   if (title) meta.courseTitle = title;
@@ -148,8 +151,9 @@ export function extractHeaderMeta(header: string): HeaderMeta {
   const sem = flat.match(/Semester\s*:?\s*:?\s*([IVX]{1,4}|\d)\b/i)?.[1];
   if (sem) meta.semester = romanToInt(sem);
 
-  if (/semester\s*end\s*exam/i.test(flat)) meta.examType = 'SEE';
-  if (/make\s*-?\s*up|supplementary/i.test(flat)) meta.examType = 'Makeup';
+  // "SEMESTER END / BACKLOG SUBJECT EXAMINATIONS" is still the SEE.
+  if (/semester\s*end/i.test(flat)) meta.examType = 'SEE';
+  if (/make\s*-?\s*up|supplementary|re\s*-?\s*registered/i.test(flat)) meta.examType = 'Makeup';
   if (!meta.examType && /internal\s*assessment|\bCIE\b|\btest\s*[- ]?\d/i.test(flat)) meta.examType = 'CIE';
 
   const exam = flat.match(new RegExp(`(${MONTHS.join('|')})(?:\\s*[-–/]\\s*(${MONTHS.join('|')}))?\\s*,?\\s*((?:19|20)\\d{2})`, 'i'));
@@ -184,13 +188,16 @@ const cap = (s: string) => (s ? s[0]!.toUpperCase() + s.slice(1).toLowerCase() :
 // ── Line classification ────────────────────────────────────────────────────
 
 // "1." / "Q1)" but not "3.0 from the following" (a decimal at the start of a wrapped line).
-const Q_START = /^(?:Q(?:uestion)?\s*\.?\s*(?:No\.?)?\s*)?(\d{1,2})\s*[.)](?!\d)\s*(.*)$/i;
+// ":" too, an OCR misread of "." ("12: Ecosystem is...").
+const Q_START = /^(?:Q(?:uestion)?\s*\.?\s*(?:No\.?)?\s*)?(\d{1,2})\s*[.):](?!\d)\s*(.*)$/i;
 // "2  a) Define ..." with no dot after the number: only valid straight before part (a).
 const Q_BARE_PART = /^(\d{1,2})\s+(\(?\s*a\s*\).*)$/;
 const Q_PART_COMPACT = /^(\d{1,2})\s*\(\s*([a-h])\s*\)\s*(.*)$/i; // "1(b) Explain..."
 const PART = /^(?:\(\s*([a-h])\s*\)|([a-h])\s*\)|([a-h])\.\s)\s*(.*)$/;
 const SUB = /^\(?\s*(x|ix|iv|v?i{1,3}|v)\s*\)\s*(.*)$/i;
-const UNIT = /^unit\s*[-–:]?\s*([IVX]{1,4}|\d{1,2})\b/i;
+// Matched anywhere in a short line: OCR leaves junk before headings ("$a UNIT - I").
+const UNIT = /\bunit\s*[-–:]?\s*([IVX]{1,4}|\d{1,2})\b/i;
+const isUnitLine = (flat: string) => flat.length < 25 && UNIT.test(flat);
 const SECTION = /^(section|part)\s*[-–:]?\s*([IVX]{1,4}|[A-C]|\d)\b/i;
 const OR_LINE = /^(\(?\s*or\s*\)?|-+\s*or\s*-+)$/i;
 const MULTI_OPTION = /(?:^|\s)\(?[a-d]\s*\)[^()]*\s\(?[b-d]\s*\)/; // "a) cd  b) echo"
@@ -236,6 +243,20 @@ export function takeLineMeta(raw: string): { text: string; marks?: number; co?: 
   return { text: text.replace(/\t/g, ' ').replace(/\s+/g, ' ').trim(), marks, co, bloom };
 }
 
+const OCR_DIGIT: Record<string, string> = { l: '1', i: '1', I: '1', z: '2', Z: '2' };
+
+/**
+ * Undo common OCR misreads in the markers the parser relies on:
+ * "¢)" / "©)" / "€)" for "c)", "B)" for "b)", and "co1" / "COo1" / "coi" / "COZ" for "CO1" / "CO2".
+ */
+export function fixOcrMarkers(line: string) {
+  return line
+    .replace(/^[|!+*•«$~]+\s*/, '')
+    .replace(/^\s*\(?\s*[¢©€]\s*\)/, 'c)')
+    .replace(/^\s*\(?\s*([A-H])\s*\)\s/, (_, l: string) => `${l.toLowerCase()}) `)
+    .replace(/\b[cC][oO0][oO0]?\s*-?\s*([0-9lIiZz])\b/g, (_, d: string) => `CO${OCR_DIGIT[d] ?? d}`);
+}
+
 // ── Parser ─────────────────────────────────────────────────────────────────
 
 type Node = {
@@ -256,10 +277,21 @@ export function segmentPaper(pages: PageText[]): SegmentResult {
   const lines = normalisePages(pages);
 
   // Everything before question 1 is the header.
-  const firstQ = lines.findIndex((l) => {
+  const qNumberAt = (l: Line) => {
     const m = l.text.replace(/\t/g, ' ').match(Q_START) ?? l.text.match(Q_PART_COMPACT);
-    return m && +m[1]! === 1;
-  });
+    return m ? +m[1]! : undefined;
+  };
+  let firstQ = lines.findIndex((l) => qNumberAt(l) === 1);
+  // OCR sometimes garbles "1. a)" itself ("+8) Describe..."). If question 2 is
+  // there, the body starts after the first UNIT heading and question 1 is implied.
+  let impliedQ1 = false;
+  if (firstQ < 0) {
+    const unitAt = lines.findIndex((l) => isUnitLine(l.text.replace(/\t/g, ' ').trim()));
+    if (unitAt >= 0 && lines.some((l, i) => i > unitAt && qNumberAt(l) === 2)) {
+      firstQ = unitAt + 1;
+      impliedQ1 = true;
+    }
+  }
   const headerLines = firstQ >= 0 ? lines.slice(0, firstQ) : lines.slice(0, 15);
   const meta = extractHeaderMeta(headerLines.map((l) => l.text).join('\n'));
   const body = firstQ >= 0 ? lines.slice(firstQ) : [];
@@ -267,7 +299,12 @@ export function segmentPaper(pages: PageText[]): SegmentResult {
 
   const questions: Node[] = [];
   // "UNIT - I" is printed just above question 1, so it ends up at the bottom of the header.
-  const headUnit = headerLines.slice(-3).map((l) => l.text.replace(/\t/g, ' ').match(UNIT)).find(Boolean);
+  const headUnit = headerLines
+    .slice(-3)
+    .map((l) => l.text.replace(/\t/g, ' ').trim())
+    .filter(isUnitLine)
+    .map((l) => l.match(UNIT))
+    .find(Boolean);
   let unit: number | undefined = headUnit ? romanToInt(headUnit[1]!) : undefined;
   let curQ: Node | undefined;
   let curPart: Node | undefined;
@@ -290,6 +327,15 @@ export function segmentPaper(pages: PageText[]): SegmentResult {
   const startPart = (letter: string, page: number, rest: string) => {
     curPart = { q: curQ!.q, part: letter, unit, page, lines: [], flags: [], children: [] };
     curSub = undefined;
+    // "1.  CO1 (10)" with the text on the next line as "a) ...": the marks belong to part (a).
+    if (!curQ!.children.length && !curQ!.lines.length) {
+      for (const k of ['marks', 'co', 'bloom'] as const) {
+        if (curQ![k] !== undefined) {
+          (curPart as Record<string, unknown>)[k] = curQ![k];
+          delete curQ![k];
+        }
+      }
+    }
     curQ!.children.push(curPart);
     if (rest) handleRest(rest, page);
   };
@@ -322,17 +368,21 @@ export function segmentPaper(pages: PageText[]): SegmentResult {
 
   for (const line of body) {
     const { page } = line;
-    // Common OCR misreads of a part marker at the start of a line: "¢)" / "©)" for "c)", "B)" for "b)".
-    const text = line.text.replace(/^\s*\(?\s*[¢©]\s*\)/, 'c)').replace(/^\s*\(?\s*([A-H])\s*\)\s/, (_, l: string) => `${l.toLowerCase()}) `);
+    const text = fixOcrMarkers(line.text);
     const flat = text.replace(/\t/g, ' ').trim();
     if (OR_LINE.test(flat)) continue;
 
-    const u = flat.match(UNIT);
-    if (u && flat.length < 30) {
-      unit = romanToInt(u[1]!);
+    if (isUnitLine(flat)) {
+      unit = romanToInt(flat.match(UNIT)![1]!);
       continue;
     }
     if (SECTION.test(flat) && flat.length < 40) continue;
+
+    // Question 1's own marker was unreadable: open it implicitly, flagged so the fallback checks it.
+    if (!curQ && impliedQ1 && qNumberAt(line) !== 1) {
+      startQ(1, page, '', true);
+      curQ!.flags.push('number-unreadable');
+    }
 
     const expectedQ = (curQ?.q ?? 0) + 1;
 
@@ -412,7 +462,7 @@ function flatten(questions: Node[]): Segment[] {
     const isQuestion = n.part === undefined && n.sub === undefined;
     const splitChildren =
       n.children.length > 0 &&
-      (n.children.filter((c) => c.marks !== undefined).length >= 2 || (isQuestion && n.children[0]?.part !== undefined));
+      (n.children.filter((c) => c.marks !== undefined).length >= 2 || (isQuestion && n.children[0]?.part !== undefined && !isMcq(n)));
     if (splitChildren) {
       const own = n.lines.join(' ').trim();
       const childStem = [stem, own].filter(Boolean).join(' ');
@@ -438,6 +488,18 @@ function flatten(questions: Node[]): Segment[] {
 
   for (const q of questions) emit(q, '');
   return out;
+}
+
+/**
+ * A multiple-choice question: marks printed against the question, none against
+ * its "parts", which are short options ("a) Abiotic factor", "b) Biotic factor").
+ */
+function isMcq(n: Node) {
+  return (
+    n.marks !== undefined &&
+    n.children.length >= 2 &&
+    n.children.every((c) => c.marks === undefined && c.children.length === 0 && c.lines.join(' ').length < 80)
+  );
 }
 
 function sumMarks(n: Node): number | undefined {

@@ -11,6 +11,7 @@ import { QuestionModel } from '../models/Question.js';
 import { ReviewItemModel } from '../models/ReviewItem.js';
 import { DOC_STATUSES, SourceDocumentModel } from '../models/SourceDocument.js';
 import { MAX_UPLOAD_BYTES, acceptUpload, uploadMeta } from '../ingestion/upload.js';
+import { refreshCourseCatalog } from '../search/parseQuery.js';
 
 export const documentsRouter = Router();
 
@@ -92,6 +93,29 @@ documentsRouter.get('/:id/questions', async (req, res) => {
   const id = objectId(req.params.id);
   const items = await QuestionModel.find({ documentId: id }).sort({ order: 1 }).lean();
   res.json({ items });
+});
+
+/**
+ * Correct a document's details (scanned headers are often unreadable). The
+ * fields are copied onto its questions too, since search filters on those.
+ */
+documentsRouter.patch('/:id', requireAuth, requireRole('moderator'), async (req, res) => {
+  const id = objectId(req.params.id);
+  const body = uploadMeta.omit({ kind: true, sourceUrl: true }).partial().parse(req.body);
+  const set = Object.fromEntries(Object.entries(body).filter(([, v]) => v !== undefined));
+  if (typeof set.courseCode === 'string') set.courseCode = set.courseCode.toUpperCase();
+  if (typeof set.branch === 'string') set.branch = set.branch.toUpperCase();
+  const doc = await SourceDocumentModel.findByIdAndUpdate(id, { $set: set }, { returnDocument: 'after', runValidators: true });
+  if (!doc) throw notFound('Document');
+
+  const copied = (['courseCode', 'courseTitle', 'branch', 'semester', 'year', 'examType'] as const).filter((k) => k in set);
+  if (copied.length) await QuestionModel.updateMany({ documentId: id }, { $set: Object.fromEntries(copied.map((k) => [k, set[k]])) });
+  await ReviewItemModel.updateMany(
+    { documentId: id, type: 'metadata', status: 'open' },
+    { $set: { status: 'resolved', resolvedBy: req.user!.id, resolvedAt: new Date(), resolution: 'details corrected' } },
+  );
+  await refreshCourseCatalog();
+  res.json({ document: doc });
 });
 
 /** Run the pipeline again from scratch, e.g. after vocabulary changes or a parser fix. */

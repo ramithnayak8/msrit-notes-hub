@@ -10,7 +10,7 @@
  */
 import { readdir, readFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
-import { join } from 'node:path';
+import { basename, join } from 'node:path';
 import { config } from '../config.js';
 import { connectDb, disconnectDb } from '../db.js';
 import { acceptUpload, uploadMeta } from '../ingestion/upload.js';
@@ -30,10 +30,13 @@ const urlFor = new Map(manifest.map((m) => [m.file, m.url]));
 await connectDb(config.MONGODB_URI);
 let queued = 0;
 let duplicates = 0;
-for (const file of (await readdir(dir)).filter((f) => /\.(pdf|png|jpe?g)$/i.test(f)).sort()) {
+// Subfolders too (papers are often filed by subject); paths are relative to `dir`.
+const files = (await readdir(dir, { recursive: true })).filter((f) => /\.(pdf|png|jpe?g)$/i.test(f)).sort();
+const skipped = (await readdir(dir, { recursive: true })).filter((f) => /\.(docx?|pptx?)$/i.test(f));
+for (const file of files) {
   try {
     const meta = uploadMeta.parse({ kind, sourceUrl: urlFor.get(file) });
-    const r = await acceptUpload(await readFile(join(dir, file)), file, meta);
+    const r = await acceptUpload(await readFile(join(dir, file)), basename(file), meta);
     if (r.duplicate) duplicates++;
     else queued++;
     console.log(`${r.duplicate ? 'duplicate' : 'queued   '}  ${file}`);
@@ -42,4 +45,5 @@ for (const file of (await readdir(dir)).filter((f) => /\.(pdf|png|jpe?g)$/i.test
   }
 }
 console.log(`\n${queued} queued, ${duplicates} already present`);
+if (skipped.length) console.log(`Skipped (Word/PowerPoint not supported, export to PDF): ${skipped.join(', ')}`);
 await disconnectDb();

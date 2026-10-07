@@ -54,6 +54,15 @@ describe('extractHeaderMeta', () => {
     expect(meta.courseCode).toBe('CSOE06');
   });
 
+  it('takes the course code, not the scheme years, from "21/22/23/AL58"', () => {
+    const meta = extractHeaderMeta('21/22/23/AL58\nSEMESTER END / BACKLOGSUBJECT EXAMINATIONS - JANUARY 2026\nCourse Name\tResearch Methodology and Intellectual\nMax. Marks\t: 100\nProperty Rights\nCourse Code\t: 21/ 22123| AL58\tDuration :3 Hrs');
+    expect(meta).toMatchObject({ courseCode: 'AL58', examType: 'SEE', year: 2026, courseTitle: 'Research Methodology and Intellectual Property Rights' });
+  });
+
+  it('treats re-registered exams as make-ups', () => {
+    expect(extractHeaderMeta('RE-REGISTERED EXAMINATIONS – JULY / AUGUST 2024').examType).toBe('Makeup');
+  });
+
   it('recognises a CIE paper and dates it from the test date', () => {
     const meta = extractHeaderMeta('Internal Assessment Question Paper\nCourse Name: Unix Shell Programming\tCourseCode:CSAEC310\nDate:03.01.2024');
     expect(meta).toMatchObject({ examType: 'CIE', year: 2024, month: 'January', courseCode: 'CSAEC310', courseTitle: 'Unix Shell Programming' });
@@ -125,6 +134,24 @@ describe('segmentPaper', () => {
   it('removes running headers and page footers across pages', () => {
     const r = segmentPaper([page(`${HEADER}\n1. a) First part.\tCO1 (10)\nPage 1 of 2`, 1), page(`CS43\nb) Second part.\tCO1 (10)\nPage 2 of 2`, 2)]);
     expect(r.segments.map((s) => s.text)).toEqual(['First part.', 'Second part.']);
+  });
+
+  it('gives a question-level CO and marks to part (a) when the text starts on the next line', () => {
+    const r = segmentPaper([page(`${HEADER}\n1.\tCO1\t(10)\na) Classify the types of research.\nb) Explain critical thinking.\tCO1 (10)\n2. a) x.\tCO2 (10)\nb) y.\tCO2 (10)`)]);
+    expect(r.segments[0]).toMatchObject({ label: 'Q1(a)', marks: 10, co: 'CO1', confidence: 1 });
+  });
+
+  it('keeps multiple-choice options inside their question', () => {
+    const r = segmentPaper([page(`${HEADER}\n1. The environment includes\tCO1 (01)\na) Abiotic factor\nb) Biotic factor\nc) Both\n2. World Water Day is on\tCO2 (01)\na) March 12 b) March 22`)]);
+    expect(r.segments[0]).toMatchObject({ label: 'Q1', marks: 1, text: 'The environment includes (a) Abiotic factor (b) Biotic factor (c) Both' });
+  });
+
+  it('recovers when OCR garbled question 1\'s number', () => {
+    const r = segmentPaper([page(`${HEADER.replace('UNIT - I', '$a UNIT - I')}\n+8) Describe the challenges in ML?\tcoi (08)\nb) Similarity learning.\tCO1 (12)\n2. a) Parameters vs hyperparameters.\tCO1 (10)\nb) Overfitting.\tCOZ (10)`)]);
+    expect(r.segments.map((s) => s.label)).toEqual(['Q1', 'Q2(a)', 'Q2(b)']);
+    expect(r.segments[0]!.flags).toContain('number-unreadable');
+    expect(r.segments[0]!.confidence).toBeLessThan(LOW_CONFIDENCE);
+    expect(r.segments[2]).toMatchObject({ co: 'CO2', unit: 1 });
   });
 
   it('reports an unparseable paper so the fallback can take over', () => {

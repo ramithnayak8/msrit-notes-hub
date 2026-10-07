@@ -15,7 +15,12 @@ const cachePath = fileURLToPath(new URL('../../.model-cache/tesseract/', import.
 
 let worker: Promise<Worker> | null = null;
 function getWorker() {
-  worker ??= createWorker('eng', 1, { cachePath, logger: () => {} });
+  worker ??= (async () => {
+    const w = await createWorker('eng', 1, { cachePath, logger: () => {} });
+    // Rendered pages carry no DPI metadata; tell Tesseract roughly what we rendered at.
+    await w.setParameters({ user_defined_dpi: '220' });
+    return w;
+  })();
   return worker;
 }
 
@@ -25,12 +30,30 @@ export async function shutdownOcr() {
 }
 
 /**
- * Clean a scanned page before recognition: greyscale, stretch contrast so
- * faded scans and phone-camera shadows even out, and sharpen the strokes.
- * Tesseract then binarises (Otsu thresholding) and corrects small skew itself.
+ * Clean a scanned page before recognition.
+ *
+ * Phone photos of papers are lit unevenly (shadow on one side, glare on the
+ * other). Tesseract binarises with one global threshold (Otsu), which on such
+ * a photo turns half the page black and finds no text at all. So we first do
+ * flat-field correction: estimate the lighting with a heavy blur and divide it
+ * out, which leaves the paper evenly white and the ink dark. Then stretch the
+ * contrast and sharpen. Tesseract binarises and corrects small skew itself.
  */
-export function preprocess(image: Buffer) {
-  return sharp(image).greyscale().normalise().sharpen().png().toBuffer();
+export async function preprocess(image: Buffer) {
+  const grey = sharp(image).flatten({ background: '#ffffff' }).greyscale();
+  const { data, info } = await grey.clone().raw().toBuffer({ resolveWithObject: true });
+  const background = await grey
+    .clone()
+    .blur(Math.max(info.width, info.height) / 60)
+    .raw()
+    .toBuffer();
+  const flat = Buffer.alloc(data.length);
+  for (let i = 0; i < data.length; i++) flat[i] = Math.min(255, Math.round((data[i]! / Math.max(1, background[i]!)) * 245));
+  return sharp(flat, { raw: { width: info.width, height: info.height, channels: 1 } })
+    .normalise()
+    .sharpen()
+    .png()
+    .toBuffer();
 }
 
 export async function ocrImage(image: Buffer): Promise<{ text: string; confidence: number }> {
