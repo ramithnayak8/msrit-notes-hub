@@ -72,12 +72,15 @@ export const llmProviders = () => providers.map((p) => p.name);
 
 export class LlmUnavailableError extends Error {}
 
-/** Try each configured provider in order, retrying once on a bad answer or a transient error. */
+/** Free tiers often answer 503 "high demand" or 429; those are worth waiting out. */
+const ATTEMPTS = 4;
+
+/** Try each configured provider in order, retrying with growing waits (2s, 4s, 8s) on errors or a bad answer. */
 export async function generateJson<T>(req: JsonRequest<T>): Promise<{ data: T; provider: string }> {
   if (!providers.length) throw new LlmUnavailableError('No language model API key configured');
   let lastErr: unknown;
   for (const p of providers) {
-    for (let attempt = 1; attempt <= 2; attempt++) {
+    for (let attempt = 1; attempt <= ATTEMPTS; attempt++) {
       const t = Date.now();
       try {
         const data = await p.generateJson(req);
@@ -86,7 +89,7 @@ export async function generateJson<T>(req: JsonRequest<T>): Promise<{ data: T; p
       } catch (err) {
         lastErr = err;
         logger.warn({ provider: p.name, task: req.task, attempt, err: (err as Error).message?.slice(0, 300) }, 'LLM call failed');
-        await new Promise((r) => setTimeout(r, 1500 * attempt));
+        if (attempt < ATTEMPTS) await new Promise((r) => setTimeout(r, 1000 * 2 ** attempt));
       }
     }
   }
