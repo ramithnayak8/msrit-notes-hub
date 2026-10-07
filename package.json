@@ -1,35 +1,19 @@
 {
   "name": "conceptquery",
-  "version": "0.1.0",
   "private": true,
-  "type": "module",
+  "workspaces": [
+    "client",
+    "server"
+  ],
   "scripts": {
-    "seed": "node scripts/seed.mjs",
-    "dev": "next dev -p 3000",
-    "build": "next build",
-    "start": "next start -p 3000",
-    "lint": "eslint .",
-    "crawl": "node scripts/crawl-sources.mjs && node scripts/classify-papers.mjs",
-    "classify": "node scripts/classify-papers.mjs"
+    "dev:client": "npm run dev -w client",
+    "dev:server": "npm run dev -w server",
+    "db:up": "docker compose up -d mongo",
+    "db:down": "docker compose down",
+    "test": "npm test -w server",
+    "typecheck": "npm run typecheck -w server"
   },
-  "dependencies": {
-    "@anthropic-ai/sdk": "^0.126.0",
-    "@react-three/fiber": "^9.8.1",
-    "@react-three/postprocessing": "^3.1.3",
-    "lenis": "^1.3.26",
-    "next": "^15.5.0",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "three": "^0.186.1"
-  },
-  "devDependencies": {
-    "@eslint/eslintrc": "^3.3.7",
-    "@types/node": "^22.10.0",
-    "@types/react": "^19.0.0",
-    "@types/react-dom": "^19.0.0",
-    "@types/three": "^0.186.0",
-    "eslint": "^9.39.5",
-    "eslint-config-next": "^15.5.27",
-    "typescript": "^5.7.0"
+  "engines": {
+    "node": ">=22"
   }
 }

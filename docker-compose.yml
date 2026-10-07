@@ -1,0 +1,22 @@
+# Local MongoDB with Atlas Search and Atlas Vector Search, the same engine as
+# the hosted Atlas cluster. Start with `npm run db:up`.
+services:
+  mongo:
+    image: mongodb/mongodb-atlas-local:latest
+    container_name: conceptquery-mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+      - mongo-config:/data/configdb
+      - mongot-data:/data/mongot
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.runCommand({ ping: 1 }).ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+volumes:
+  mongo-data:
+  mongo-config:
+  mongot-data:
