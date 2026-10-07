@@ -1,0 +1,77 @@
+### ConceptQuery API walkthrough
+### Open in VS Code with the "REST Client" extension and click "Send Request" above each block.
+### Order: register -> verify (link is printed in the server log) -> login -> the rest.
+
+@api = http://localhost:4000/api
+@email = 1ms24ci080@msrit.edu
+@password = demo-pass-123
+# Paste the accessToken from the login response here:
+@token = paste-access-token
+
+### Health: database, embedding model, configured language model providers
+GET {{api}}/health
+
+### Register (only @msrit.edu addresses are accepted)
+POST {{api}}/auth/register
+Content-Type: application/json
+
+{ "name": "Demo Student", "email": "{{email}}", "password": "{{password}}" }
+
+### Login: returns an access token; the refresh token arrives as an httpOnly cookie
+POST {{api}}/auth/login
+Content-Type: application/json
+
+{ "email": "{{email}}", "password": "{{password}}" }
+
+### Who am I
+GET {{api}}/auth/me
+Authorization: Bearer {{token}}
+
+### Rotate the refresh token (uses the cookie from login)
+POST {{api}}/auth/refresh
+
+### Upload a paper (needs the uploader or moderator role: npm run user:role -w server -- <email> moderator)
+POST {{api}}/documents
+Authorization: Bearer {{token}}
+Content-Type: multipart/form-data; boundary=b
+
+--b
+Content-Disposition: form-data; name="kind"
+
+question_paper
+--b
+Content-Disposition: form-data; name="file"; filename="paper.pdf"
+Content-Type: application/pdf
+
+< ../samples/papers/01-SEE-2023-Design_and_Analysis_of_Algorithms.pdf
+--b--
+
+### Documents and their processing status
+GET {{api}}/documents?limit=20
+
+### Hybrid search (keyword BM25 + vector, fused with reciprocal rank fusion)
+GET {{api}}/search?q=shortest path from a single source
+
+### Filters parsed from plain English: course acronym, marks, year
+GET {{api}}/search?q=DAA greedy algorithms 2023
+
+### Compare modes on the same query
+GET {{api}}/search?q=using a stack to rewrite arithmetic expressions&mode=keyword
+###
+GET {{api}}/search?q=using a stack to rewrite arithmetic expressions&mode=vector
+
+### Analytics: most-examined topics, distribution by year, questions asked again
+GET {{api}}/analytics/topics?limit=15
+###
+GET {{api}}/analytics/distribution?by=year
+###
+GET {{api}}/analytics/recurring
+###
+GET {{api}}/analytics/stats
+
+### Moderation queue (moderator)
+GET {{api}}/review
+Authorization: Bearer {{token}}
+
+### Topic vocabulary
+GET {{api}}/topics

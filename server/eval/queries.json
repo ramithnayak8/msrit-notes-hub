@@ -1,0 +1,60 @@
+[
+  { "q": "maximum flow in a network", "relevant": ["CS43-2023-SEE:Q8(b)"] },
+  {
+    "q": "shortest path from a single source",
+    "relevant": ["CS43-2023-SEE:Q6(a)", "AI43-2023-SEE:Q5(b)", "AI43-2023-SEE:Q7(a)", "AI43-2023-SEE:Q7(b)", "CS43-2023-SEE:Q7(b)", "ET36-2022-SEE:Q9(a)", "EC34-2022-SEE:Q10(a)", "IS43-2023-SEE:Q6(b)", "AI43-2023-SEE:Q8(b)"]
+  },
+  {
+    "q": "minimum spanning tree",
+    "relevant": ["EC34-2022-SEE:Q9(a)", "AI43-2023-SEE:Q6(b)", "CSOE06-2021-SEE:Q10(a)", "ET36-2022-SEE:Q9(b)", "CI35-2024-SEE:Q7(c)", "IS43-2023-SEE:Q5(b)", "CS43-2023-SEE:Q5(b)"]
+  },
+  { "q": "convert infix expression to postfix", "relevant": ["EC34-2022-SEE:Q5(b)", "CS33-2024-SEE:Q3(b)", "CI33-2024-SEE:Q3(b)", "ET36-2022-SEE:Q4(b)"] },
+  { "q": "evaluate postfix expression using stack", "relevant": ["CS33-2024-SEE:Q4(b)", "CI33-2024-SEE:Q4(c)", "EC34-2022-SEE:Q6(b)", "ET36-2022-SEE:Q3(b)"] },
+  {
+    "q": "tree traversal inorder preorder postorder",
+    "relevant": ["IS43-2023-SEE:Q4(c)", "CS33-2024-SEE:Q7(b)", "CS33-2024-SEE:Q7(c)", "CSOE06-2021-SEE:Q7(c)", "CI33-2024-SEE:Q7(a)", "EI52-2021-SEE:Q10(a)", "ET36-2022-SEE:Q6(b)", "CI33-2024-SEE:Q8(c)", "CI33-2024-SEE:Q7(b)", "CS33-2024-SEE:Q8(a)"]
+  },
+  { "q": "asymptotic notations big O", "relevant": ["CS43-2023-SEE:Q1(b)", "IS43-2023-SEE:Q2(c)", "AI43-2023-SEE:Q1(c)", "AI43-2023-SEE:Q1(a)"] },
+  { "q": "knapsack problem", "relevant": ["CS43-2023-SEE:Q7(a)", "IS43-2023-SEE:Q5(a)", "AI43-2023-SEE:Q8(c)", "AI43-2023-SEE:Q7(c)"] },
+  { "q": "hashing and collision resolution", "relevant": ["CI33-2024-SEE:Q9(a)", "CI33-2024-SEE:Q10(a)", "ET36-2022-SEE:Q7(a)", "ET36-2022-SEE:Q8(a)"] },
+  { "q": "circular queue", "relevant": ["CS33-2024-SEE:Q3(c)", "CSOE06-2021-SEE:Q4(c)", "EC34-2022-SEE:Q6(a)", "CS33-2024-SEE:Q4(a)", "CI33-2024-SEE:Q3(a)"] },
+  { "q": "NP complete problems", "relevant": ["AI43-2023-SEE:Q9(c)", "IS43-2023-SEE:Q10(a)", "CS43-2023-SEE:Q10(a)", "AI43-2023-SEE:Q10(b)", "AI43-2023-SEE:Q9(a)", "AI43-2023-SEE:Q9(b)"] },
+  {
+    "q": "sorting algorithm time complexity",
+    "relevant": ["CS43-2023-SEE:Q4(c)", "CSOE06-2021-SEE:Q8(a)", "CSOE06-2021-SEE:Q7(b)", "IS43-2023-SEE:Q3(a)", "ET36-2022-SEE:Q8(b)", "ET36-2022-SEE:Q7(b)", "IS43-2023-SEE:Q7(a)", "IS43-2023-SEE:Q3(c)", "AI43-2023-SEE:Q4(c)", "IS43-2023-SEE:Q4(a)", "CS43-2023-SEE:Q3(a)"]
+  },
+  {
+    "q": "inheritance in C++",
+    "relevant": ["EC34-2022-SEE:Q4(b)", "EC34-2022-SEE:Q3(a)", "EI52-2021-SEE:Q8(c)", "EI52-2021-SEE:Q7(a)", "EI52-2021-SEE:Q8(b)", "EC34-2022-SEE:Q4(a)", "EC34-2022-SEE:Q3(b)"]
+  },
+  { "q": "constructors and destructors", "relevant": ["EC34-2022-SEE:Q2(a)", "EC34-2022-SEE:Q1(b)", "EI52-2021-SEE:Q4(b)", "EI52-2021-SEE:Q6(a)", "EI52-2021-SEE:Q4(c)"] },
+  {
+    "q": "graph search BFS DFS",
+    "relevant": ["CSOE06-2021-SEE:Q9(b)", "ET36-2022-SEE:Q10(a)", "AI43-2023-SEE:Q3(b)", "AI43-2023-SEE:Q4(a)", "CS33-2024-SEE:Q10(c)", "AI43-2023-SEE:Q4(b)", "CS43-2023-SEE:Q3(b)", "CSOE06-2021-SEE:Q9(a)", "CS33-2024-SEE:Q9(b)", "IS43-2023-SEE:Q8(b)", "CS43-2023-SEE:Q4(a)"]
+  },
+  {
+    "q": "algorithms for graphs with negative edge weights",
+    "note": "paraphrase: Bellman-Ford without naming it",
+    "relevant": ["AI43-2023-SEE:Q7(a)", "AI43-2023-SEE:Q7(b)", "CS43-2023-SEE:Q7(b)", "AI43-2023-SEE:Q8(b)"]
+  },
+  {
+    "q": "connect all vertices with the least total edge cost",
+    "note": "paraphrase: minimum spanning tree without naming it",
+    "relevant": ["EC34-2022-SEE:Q9(a)", "AI43-2023-SEE:Q6(b)", "CSOE06-2021-SEE:Q10(a)", "ET36-2022-SEE:Q9(b)", "CI35-2024-SEE:Q7(c)", "IS43-2023-SEE:Q5(b)", "CS43-2023-SEE:Q5(b)"]
+  },
+  {
+    "q": "using a stack to rewrite arithmetic expressions",
+    "note": "paraphrase: infix/postfix conversion and evaluation",
+    "relevant": ["EC34-2022-SEE:Q5(b)", "CS33-2024-SEE:Q3(b)", "CI33-2024-SEE:Q3(b)", "ET36-2022-SEE:Q4(b)", "CS33-2024-SEE:Q4(b)", "CI33-2024-SEE:Q4(c)", "EC34-2022-SEE:Q6(b)", "ET36-2022-SEE:Q3(b)"]
+  },
+  {
+    "q": "what happens when two keys map to the same slot",
+    "note": "paraphrase: hash collisions",
+    "relevant": ["CI33-2024-SEE:Q9(a)", "CI33-2024-SEE:Q10(a)", "ET36-2022-SEE:Q7(a)", "ET36-2022-SEE:Q8(a)"]
+  },
+  {
+    "q": "member function called when an object goes out of scope",
+    "note": "paraphrase: destructors",
+    "relevant": ["EC34-2022-SEE:Q2(a)", "EI52-2021-SEE:Q4(b)"]
+  }
+]
