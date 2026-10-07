@@ -22,6 +22,7 @@ npm install
 npm run db:up                         # MongoDB with Search + Vector Search (mongodb-atlas-local)
 cp server/.env.example server/.env    # then fill in the two JWT secrets (command is in the file)
 npm run db:indexes -w server          # create the search indexes
+npm run seed:courses -w server        # load official schemes from server/data/schemes
 npm run dev:server                    # API on http://localhost:4000, worker in the same process
 ```
 
@@ -86,6 +87,7 @@ mode and reports Recall@10 and MRR.
 | POST/DELETE | `/api/documents/:id/reprocess` · `/api/documents/:id` | Re-run the pipeline, remove (moderator) |
 | GET | `/api/search?q=&mode=hybrid\|vector\|keyword` | Search with parsed filters |
 | GET | `/api/analytics/topics` · `/distribution?by=` · `/recurring` · `/stats` | Topic frequency, distributions, repeated questions |
+| GET | `/api/courses?semester=5` | Current scheme, each course linked to past papers on the same subject |
 | GET/POST/PATCH | `/api/topics` | Vocabulary; approve, rename or merge topics (moderator) |
 | GET/POST | `/api/review` · `/api/review/:id/resolve` | Moderation queue |
 | PATCH | `/api/questions/:id` | Correct a question; it is re-embedded (moderator) |

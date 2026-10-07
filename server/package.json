@@ -9,6 +9,7 @@
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "seed:courses": "tsx --env-file-if-exists=.env src/scripts/seed-courses.ts",
     "db:indexes": "tsx --env-file-if-exists=.env src/scripts/ensure-indexes.ts",
     "user:role": "tsx --env-file-if-exists=.env src/scripts/set-role.ts",
     "import:papers": "tsx --env-file-if-exists=.env src/scripts/import-papers.ts",

@@ -14,7 +14,7 @@
 import { readFile } from 'node:fs/promises';
 import { config } from '../config.js';
 import { connectDb, disconnectDb } from '../db.js';
-import { refreshCourseCatalog } from '../search/parseQuery.js';
+import { refreshCourseCatalog } from '../search/catalog.js';
 import { searchQuestions, type SearchHit, type SearchMode } from '../search/search.js';
 
 type Labelled = { q: string; relevant: string[]; note?: string };

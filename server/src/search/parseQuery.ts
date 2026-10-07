@@ -1,4 +1,3 @@
-import { SourceDocumentModel } from '../models/SourceDocument.js';
 
 /**
  * Rule-based query understanding, so search needs no language model.
@@ -28,7 +27,12 @@ export type ParsedQuery = {
   understood: string[];
 };
 
-export type Course = { code: string; title: string };
+/**
+ * A course the parser can recognise. `filterCodes` are the paper course codes
+ * a mention of it should filter to (see catalog.ts); defaults to its own code.
+ */
+export type Course = { code: string; title: string; filterCodes?: string[] };
+const filterCodesOf = (c: Course) => c.filterCodes ?? [c.code.toUpperCase()];
 
 const BRANCHES: Record<string, string> = {
   cse: 'CSE', cs: 'CSE', ise: 'ISE', is: 'ISE', aiml: 'AIML', 'ai&ml': 'AIML', 'ai-ml': 'AIML', aids: 'AIDS', 'ai&ds': 'AIDS',
@@ -109,21 +113,30 @@ export function parseQuery(raw: string, courses: Course[] = [], now = new Date()
   if (take(/\bnotes?\b/i)) (filters.kind = 'note'), understood.push('notes');
 
   // ── Course: code, full title, or acronym ──
+  // A course only becomes a filter if it leads to papers; otherwise its name
+  // stays in the text and is searched as a topic ("Edge Computing" with no
+  // papers yet still finds related questions).
   const codes = new Set<string>();
+  let courseTitle: string | undefined;
   for (const c of courses) {
     const code = c.code.toUpperCase();
-    if (new RegExp(`\\b${code}\\b`, 'i').test(q)) {
-      codes.add(code);
-      q = q.replace(new RegExp(`\\b${code}\\b`, 'ig'), ' ');
+    const re = new RegExp(`\\b${code}\\b`, 'i');
+    if (re.test(q) && filterCodesOf(c).length) {
+      filterCodesOf(c).forEach((x) => codes.add(x));
+      courseTitle ??= c.title;
     }
   }
+  if (codes.size) for (const code of codes) q = q.replace(new RegExp(`\\b${code}\\b`, 'ig'), ' ');
   if (!codes.size) {
     const byTitle = [...courses].sort((a, b) => b.title.length - a.title.length);
     for (const c of byTitle) {
       const title = c.title.toLowerCase();
       if (title.length > 3 && q.toLowerCase().includes(title)) {
-        for (const x of courses) if (x.title.toLowerCase() === title) codes.add(x.code.toUpperCase());
-        q = q.replace(new RegExp(title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'ig'), ' ');
+        for (const x of courses) if (x.title.toLowerCase() === title) filterCodesOf(x).forEach((code) => codes.add(code));
+        if (codes.size) {
+          courseTitle = c.title;
+          q = q.replace(new RegExp(title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'ig'), ' ');
+        }
         break;
       }
     }
@@ -131,9 +144,11 @@ export function parseQuery(raw: string, courses: Course[] = [], now = new Date()
   if (!codes.size) {
     for (const token of q.split(/\s+/).filter((t) => /^[A-Za-z]{2,6}$/.test(t))) {
       const matches = courses.filter((c) => acronym(c.title).length >= 2 && acronym(c.title) === token.toUpperCase());
-      // Only uppercase tokens count as acronyms ("DAA", "DS"), so ordinary words like "ds" in text don't.
-      if (matches.length && token === token.toUpperCase()) {
-        matches.forEach((c) => codes.add(c.code.toUpperCase()));
+      // Only uppercase tokens count as acronyms ("DAA", "ML"), so ordinary words like "ds" in text don't.
+      const target = matches.flatMap(filterCodesOf);
+      if (target.length && token === token.toUpperCase()) {
+        target.forEach((c) => codes.add(c));
+        courseTitle = matches[0]!.title;
         q = q.replace(new RegExp(`\\b${token}\\b`), ' ');
         break;
       }
@@ -141,8 +156,7 @@ export function parseQuery(raw: string, courses: Course[] = [], now = new Date()
   }
   if (codes.size) {
     filters.courseCodes = [...codes];
-    const title = courses.find((c) => codes.has(c.code.toUpperCase()))?.title;
-    understood.push(`course ${title ?? ''} (${filters.courseCodes.join(', ')})`.replace('  ', ' '));
+    understood.push(`course ${courseTitle ?? ''} (${filters.courseCodes.join(', ')})`.replace('  ', ' '));
   }
 
   // ── Branch ──
@@ -165,18 +179,3 @@ export function parseQuery(raw: string, courses: Course[] = [], now = new Date()
     .trim();
   return { raw, text, filters, understood };
 }
-
-// ── Course catalogue, for recognising course names in queries ─────────────
-
-let catalog: Course[] = [];
-
-export async function refreshCourseCatalog() {
-  const rows = await SourceDocumentModel.aggregate<{ _id: { code: string; title: string } }>([
-    { $match: { courseCode: { $exists: true, $ne: null }, courseTitle: { $exists: true, $ne: null } } },
-    { $group: { _id: { code: '$courseCode', title: '$courseTitle' } } },
-  ]);
-  catalog = rows.map((r) => ({ code: r._id.code, title: r._id.title }));
-  return catalog;
-}
-
-export const courseCatalog = () => catalog;

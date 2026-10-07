@@ -8,7 +8,7 @@ import { QuestionModel } from '../models/Question.js';
 import { ReviewItemModel } from '../models/ReviewItem.js';
 import { SourceDocumentModel, type SourceDocumentDoc } from '../models/SourceDocument.js';
 import { VECTOR_INDEX } from '../search/indexes.js';
-import { refreshCourseCatalog } from '../search/parseQuery.js';
+import { refreshCourseCatalog } from '../search/catalog.js';
 import { repairLowConfidence, segmentWholeWithModel } from './fallback.js';
 import type { PageText } from './extract.js';
 import { extractDocument } from './ocr.js';

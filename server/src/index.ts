@@ -7,7 +7,7 @@ import { logger } from './lib/logger.js';
 import { llmProviders } from './llm/provider.js';
 import { warmUpEmbedder } from './ml/embedder.js';
 import { ensureSearchIndexes } from './search/indexes.js';
-import { refreshCourseCatalog } from './search/parseQuery.js';
+import { refreshCourseCatalog } from './search/catalog.js';
 
 await connectDb(config.MONGODB_URI);
 await ensureSearchIndexes({ wait: false });

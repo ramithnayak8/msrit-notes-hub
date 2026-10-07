@@ -5,7 +5,8 @@ import { QuestionModel } from '../models/Question.js';
 import { SourceDocumentModel } from '../models/SourceDocument.js';
 import { TopicModel } from '../models/Topic.js';
 import { TEXT_INDEX, VECTOR_INDEX } from './indexes.js';
-import { courseCatalog, parseQuery, type ParsedQuery, type SearchFilters } from './parseQuery.js';
+import { courseCatalog } from './catalog.js';
+import { parseQuery, type ParsedQuery, type SearchFilters } from './parseQuery.js';
 
 export type SearchMode = 'hybrid' | 'vector' | 'keyword';
 

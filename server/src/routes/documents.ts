@@ -11,7 +11,7 @@ import { QuestionModel } from '../models/Question.js';
 import { ReviewItemModel } from '../models/ReviewItem.js';
 import { DOC_STATUSES, SourceDocumentModel } from '../models/SourceDocument.js';
 import { MAX_UPLOAD_BYTES, acceptUpload, uploadMeta } from '../ingestion/upload.js';
-import { refreshCourseCatalog } from '../search/parseQuery.js';
+import { refreshCourseCatalog } from '../search/catalog.js';
 
 export const documentsRouter = Router();
 

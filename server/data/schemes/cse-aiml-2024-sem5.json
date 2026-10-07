@@ -1,0 +1,23 @@
+{
+  "program": "CSE-AIML",
+  "programName": "B.E. in Computer Science and Engineering (AI & ML)",
+  "scheme": "2024",
+  "semester": 5,
+  "source": "Scheme of Teaching, V Semester, Batch 2024",
+  "courses": [
+    { "code": "CI51", "title": "Big Data Systems", "department": "CSE(AIML)", "category": "PCC", "credits": { "L": 3, "T": 0, "P": 0, "total": 3 } },
+    { "code": "CI52", "title": "Foundations of Artificial Intelligence and Computational Agents", "department": "CSE(AIML)", "category": "IPCC", "credits": { "L": 2, "T": 0, "P": 1, "total": 3 } },
+    { "code": "CI53", "title": "Machine Learning", "department": "CSE(AIML)", "category": "PCC", "credits": { "L": 3, "T": 1, "P": 0, "total": 4 } },
+    { "code": "CI54", "title": "Software Engineering with MLOps", "department": "CSE(AIML)", "category": "PCC", "credits": { "L": 3, "T": 0, "P": 0, "total": 3 } },
+    { "code": "CIL56", "title": "Big Data Systems Laboratory", "department": "CSE(AIML)", "category": "PCC", "credits": { "L": 0, "T": 0, "P": 1, "total": 1 } },
+    { "code": "CIL57", "title": "Machine Learning Laboratory", "department": "CSE(AIML)", "category": "PCC", "credits": { "L": 0, "T": 0, "P": 1, "total": 1 } },
+    { "code": "AL58", "title": "Research Methodology and Intellectual Property Rights", "department": "CSE(AIML)", "category": "HSMC", "credits": { "L": 3, "T": 0, "P": 0, "total": 3 } },
+    { "code": "CIAEC59", "title": "DevOps", "department": "Any Dept.", "category": "AEC", "credits": { "L": 1, "T": 0, "P": 0, "total": 1 } },
+    { "code": "HS510", "title": "Environmental Studies", "department": "Humanities", "category": "NCMC", "credits": { "L": 0, "T": 0, "P": 0, "total": 0 } },
+    { "code": "CIE551", "title": "Edge Computing", "department": "CSE(AIML)", "category": "PEC", "credits": { "L": 3, "T": 0, "P": 0, "total": 3 } },
+    { "code": "CIE552", "title": "Information Retrieval", "department": "CSE(AIML)", "category": "PEC", "credits": { "L": 3, "T": 0, "P": 0, "total": 3 } },
+    { "code": "CIE553", "title": "Advanced Algorithms", "department": "CSE(AIML)", "category": "PEC", "credits": { "L": 3, "T": 0, "P": 0, "total": 3 } },
+    { "code": "CIE554", "title": "Full Stack Development", "department": "CSE(AIML)", "category": "PEC", "credits": { "L": 3, "T": 0, "P": 0, "total": 3 } },
+    { "code": "CIE555", "title": "Optimization Techniques", "department": "CSE(AIML)", "category": "PEC", "credits": { "L": 3, "T": 0, "P": 0, "total": 3 } }
+  ]
+}

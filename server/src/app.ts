@@ -13,6 +13,7 @@ import { errorHandler, notFoundHandler } from './middleware/errors.js';
 import { JobModel } from './models/Job.js';
 import { analyticsRouter } from './routes/analytics.js';
 import { authRouter } from './routes/auth.js';
+import { coursesRouter } from './routes/courses.js';
 import { documentsRouter } from './routes/documents.js';
 import { questionsRouter, reviewRouter } from './routes/review.js';
 import { searchRouter } from './routes/search.js';
@@ -43,6 +44,7 @@ export function createApp() {
   app.use('/api/documents', documentsRouter);
   app.use('/api/questions', questionsRouter);
   app.use('/api/topics', topicsRouter);
+  app.use('/api/courses', coursesRouter);
   app.use('/api/review', reviewRouter);
   app.use('/api/analytics', analyticsRouter);
 

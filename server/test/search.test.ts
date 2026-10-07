@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { shareKeyword } from '../src/search/catalog.js';
 import { acronym, parseQuery } from '../src/search/parseQuery.js';
 import { reciprocalRankFusion, RRF_K } from '../src/search/search.js';
 
@@ -42,9 +43,29 @@ describe('parseQuery', () => {
     expect(parseQuery('CS43 2023', courses, now)).toMatchObject({ text: '', filters: { courseCodes: ['CS43'], yearFrom: 2023, yearTo: 2023 } });
   });
 
+  it('maps a current course to the past papers linked to it, not to its own code', () => {
+    // 2024 scheme: ML is CI53; its past papers were set under CI52 ("Introduction to Machine Learning").
+    const catalog = [
+      { code: 'CI53', title: 'Machine Learning', filterCodes: ['CI52'] },
+      { code: 'CIE551', title: 'Edge Computing', filterCodes: [] },
+    ];
+    expect(parseQuery('ML confusion matrix', catalog, now)).toMatchObject({ filters: { courseCodes: ['CI52'] }, text: 'confusion matrix' });
+    // A course with no papers is searched as a topic instead of filtering everything out.
+    expect(parseQuery('edge computing', catalog, now)).toMatchObject({ filters: {}, text: 'edge computing' });
+  });
+
   it('builds acronyms without filler words', () => {
     expect(acronym('Design and Analysis of Algorithms')).toBe('DAA');
     expect(acronym('Data Structures using C++')).toBe('DSC');
+  });
+});
+
+describe('shareKeyword', () => {
+  it('links renamed subjects and ignores generic words', () => {
+    expect(shareKeyword('Software Engineering with MLOps', 'Software Engineering')).toBe(true);
+    expect(shareKeyword('Environmental Studies', 'EnvironmentalStudies')).toBe(true);
+    expect(shareKeyword('Foundations of Artificial Intelligence', 'Introduction to Data Structures')).toBe(false);
+    expect(shareKeyword('Optimization Techniques', 'Design and Analysis of Algorithms')).toBe(false);
   });
 });
 
