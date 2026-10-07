@@ -4,6 +4,7 @@ import { QuestionResult } from '@/components/QuestionResult';
 import { Bookshelf } from '@/components/browse/Bookshelf';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { Tilt } from '@/components/ui/Tilt';
+import { Counter } from '@/components/ui/Counter';
 import { getStats, getYearRange, getDepartments, diffSyllabus } from '@/lib/db';
 import { searchQuestions } from '@/lib/search';
 
@@ -65,19 +66,19 @@ export default function HomePage() {
           <div className="panel panel-pad">
             <div className="stats">
               <div className="stat">
-                <div className="stat-value">{stats.questions}</div>
+                <div className="stat-value"><Counter value={stats.questions} /></div>
                 <div className="stat-label">Questions indexed</div>
               </div>
               <div className="stat">
-                <div className="stat-value">{stats.papers}</div>
+                <div className="stat-value"><Counter value={stats.papers} /></div>
                 <div className="stat-label">Papers across {years.min}–{years.max}</div>
               </div>
               <div className="stat">
-                <div className="stat-value">{stats.courses}</div>
+                <div className="stat-value"><Counter value={stats.courses} /></div>
                 <div className="stat-label">Courses across {stats.departments} branches</div>
               </div>
               <div className="stat">
-                <div className="stat-value">{stats.notes}</div>
+                <div className="stat-value"><Counter value={stats.notes} /></div>
                 <div className="stat-label">Note sets contributed</div>
               </div>
             </div>

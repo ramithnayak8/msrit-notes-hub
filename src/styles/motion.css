@@ -1,0 +1,59 @@
+/* Micro-interactions: page transitions, cursor halo, magnetic buttons, Lenis. */
+
+/* ── Page transitions ─────────────────────────────────────────── */
+
+.page { flex: 1 0 auto; display: flex; flex-direction: column; }
+.page > main { flex: 1 0 auto; }
+/* Opacity only on the wrapper: a transform here would trap position: fixed children. */
+.page-enter { animation: pageFade 380ms var(--ease-out) both; }
+.page-enter > main > :not(.intro) { animation: pageRise 520ms var(--ease-out) both; }
+.page-enter > main > :nth-child(2) { animation-delay: 50ms; }
+.page-enter > main > :nth-child(n + 3) { animation-delay: 100ms; }
+@keyframes pageFade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes pageRise { from { transform: translateY(14px); } to { transform: none; } }
+
+/* ── Cursor halo ──────────────────────────────────────────────── */
+
+.cursor-halo {
+  position: fixed; left: 0; top: 0;
+  z-index: var(--z-loader);
+  width: 34px; height: 34px;
+  margin: -17px 0 0 -17px;
+  border-radius: 50%;
+  pointer-events: none;
+  border: 1px solid var(--accent-line);
+  background: radial-gradient(circle, var(--glow), transparent 70%);
+  opacity: 0;
+  will-change: transform;
+}
+.cursor-halo[data-visible] { opacity: 0.75; }
+.cursor-halo::after {
+  content: '';
+  position: absolute; inset: 0;
+  border-radius: inherit;
+  transition: transform var(--dur-2) var(--ease-out), background-color var(--dur-2) ease;
+}
+.cursor-halo { transition: opacity var(--dur-2) ease, width var(--dur-2) var(--ease-out), height var(--dur-2) var(--ease-out), margin var(--dur-2) var(--ease-out), border-color var(--dur-2) ease; }
+.cursor-halo[data-hover] { width: 54px; height: 54px; margin: -27px 0 0 -27px; border-color: var(--accent); }
+.cursor-halo[data-press] { width: 26px; height: 26px; margin: -13px 0 0 -13px; }
+@media (hover: none), (pointer: coarse) { .cursor-halo { display: none; } }
+[data-effects='off'] .cursor-halo { display: none; }
+/* The halo would sit under the backdrop of a modal; hide it there. */
+html:has(dialog[open]) .cursor-halo { opacity: 0; }
+
+/* ── Magnetic buttons ─────────────────────────────────────────── */
+
+[data-magnetic], .btn-primary { transition-property: translate, background-color, color, border-color, box-shadow, transform; }
+[data-magnetic], .btn-primary { transition-duration: 320ms; transition-timing-function: var(--ease-out); }
+
+/* ── Lenis ────────────────────────────────────────────────────── */
+
+html.lenis, html.lenis body { height: auto; }
+.lenis.lenis-smooth { scroll-behavior: auto !important; }
+.lenis:not(.lenis-autoToggle).lenis-stopped { overflow: clip; }
+.lenis [data-lenis-prevent] { overscroll-behavior: contain; }
+.lenis.lenis-smooth iframe { pointer-events: none; }
+
+/* ── Stats count-up ───────────────────────────────────────────── */
+
+.stat-value .nums { display: inline-block; min-width: 2ch; }

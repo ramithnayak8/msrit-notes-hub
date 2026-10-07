@@ -8,6 +8,7 @@ import { CommandPalette } from '@/components/study/CommandPalette';
 import { FocusProvider } from '@/components/study/FocusProvider';
 import { FocusPanel, FocusPill } from '@/components/study/FocusPanel';
 import { AmbienceLayer } from '@/components/ambience/AmbienceLayer';
+import { MicroInteractions } from '@/components/ui/MicroInteractions';
 import { BOOT_SCRIPT } from '@/lib/client/prefs';
 import { INTRO_BOOT } from '@/lib/client/intro';
 import './globals.css';
@@ -102,6 +103,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <StudyRoomPanel />
             <FocusPanel />
             <CommandPalette />
+            <MicroInteractions />
           </FocusProvider>
         </StudyRoomProvider>
       </body>
