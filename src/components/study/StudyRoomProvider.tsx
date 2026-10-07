@@ -10,6 +10,7 @@ import {
   type Prefs,
 } from '@/lib/client/prefs';
 import { consumeIntro } from '@/lib/client/intro';
+import { sound as soundEngine } from '@/components/ambience/audio';
 
 export type Overlay = 'palette' | 'room' | 'focus' | null;
 
@@ -19,6 +20,9 @@ type StudyRoom = {
   effects: Effects;
   ready: boolean;
   setPref: <K extends keyof Prefs>(key: K, value: Prefs[K]) => void;
+  /** Ambient sound. Not persisted: browsers only allow audio after a click. */
+  sound: boolean;
+  setSound: (on: boolean) => void;
   overlay: Overlay;
   open: (overlay: Exclude<Overlay, null>) => void;
   close: () => void;
@@ -31,6 +35,7 @@ export function StudyRoomProvider({ children }: { children: React.ReactNode }) {
   const [effects, setEffects] = useState<Effects>('full');
   const [ready, setReady] = useState(false);
   const [overlay, setOverlay] = useState<Overlay>(null);
+  const [sound, setSoundState] = useState(false);
 
   useEffect(() => {
     setPrefs(loadPrefs());
@@ -67,12 +72,23 @@ export function StudyRoomProvider({ children }: { children: React.ReactNode }) {
     setPrefs((prev) => ({ ...prev, [key]: value }));
   }, []);
 
+  const setSound = useCallback((on: boolean) => {
+    // Unlocking inside the click handler satisfies Safari's autoplay rule.
+    if (on) soundEngine.unlock();
+    setSoundState(on);
+  }, []);
+
+  useEffect(() => {
+    if (sound) soundEngine.play(prefs.ambience, prefs.volume);
+    else soundEngine.stop();
+  }, [sound, prefs.ambience, prefs.volume]);
+
   const open = useCallback((next: Exclude<Overlay, null>) => setOverlay(next), []);
   const close = useCallback(() => setOverlay(null), []);
 
   const value = useMemo(
-    () => ({ prefs, effects, ready, setPref, overlay, open, close }),
-    [prefs, effects, ready, setPref, overlay, open, close]
+    () => ({ prefs, effects, ready, setPref, sound, setSound, overlay, open, close }),
+    [prefs, effects, ready, setPref, sound, setSound, overlay, open, close]
   );
 
   return <StudyRoomContext.Provider value={value}>{children}</StudyRoomContext.Provider>;

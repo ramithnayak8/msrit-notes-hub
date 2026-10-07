@@ -5,6 +5,9 @@ import { Footer } from '@/components/layout/Footer';
 import { StudyRoomProvider } from '@/components/study/StudyRoomProvider';
 import { StudyRoomPanel } from '@/components/study/StudyRoomPanel';
 import { CommandPalette } from '@/components/study/CommandPalette';
+import { FocusProvider } from '@/components/study/FocusProvider';
+import { FocusPanel, FocusPill } from '@/components/study/FocusPanel';
+import { AmbienceLayer } from '@/components/ambience/AmbienceLayer';
 import { BOOT_SCRIPT } from '@/lib/client/prefs';
 import { INTRO_BOOT } from '@/lib/client/intro';
 import './globals.css';
@@ -86,15 +89,20 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script dangerouslySetInnerHTML={{ __html: BOOT_SCRIPT + INTRO_BOOT }} />
         <a href="#main" className="skip-link">Skip to content</a>
         <StudyRoomProvider>
-          <div className="site">
-            <Masthead />
-            <div id="main" tabIndex={-1} className="site-main">
-              {children}
+          <FocusProvider>
+            <AmbienceLayer />
+            <div className="site">
+              <Masthead />
+              <div id="main" tabIndex={-1} className="site-main">
+                {children}
+              </div>
+              <Footer />
             </div>
-            <Footer />
-          </div>
-          <StudyRoomPanel />
-          <CommandPalette />
+            <FocusPill />
+            <StudyRoomPanel />
+            <FocusPanel />
+            <CommandPalette />
+          </FocusProvider>
         </StudyRoomProvider>
       </body>
     </html>

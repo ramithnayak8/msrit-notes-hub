@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Icon } from '@/components/ui/Icon';
 import { useStudyRoom } from '@/components/study/StudyRoomProvider';
+import { useFocus } from '@/components/study/FocusProvider';
 
 export const NAV_LINKS = [
   { href: '/search', label: 'Search' },
@@ -16,6 +17,7 @@ export const NAV_LINKS = [
 export function Masthead() {
   const pathname = usePathname();
   const { open, overlay } = useStudyRoom();
+  const focus = useFocus();
   const [menuOpen, setMenuOpen] = useState(false);
 
   // Close the mobile menu on navigation and on Escape.
@@ -73,9 +75,30 @@ export function Masthead() {
             <span className="search-trigger-text">Search everything</span>
             <span className="kbd search-trigger-kbd">Ctrl K</span>
           </Link>
+          <Link
+            href="/shelf"
+            className={`icon-btn masthead-shelf${isActive('/shelf') ? ' active' : ''}`}
+            aria-label="My shelf"
+            aria-current={isActive('/shelf') ? 'page' : undefined}
+            title="My shelf"
+          >
+            <Icon name="bookmark" />
+          </Link>
+          <button
+            type="button"
+            className={`icon-btn${focus.running ? ' is-live' : ''}`}
+            aria-label={focus.running ? 'Focus timer (running)' : 'Focus timer'}
+            aria-haspopup="dialog"
+            aria-expanded={overlay === 'focus'}
+            title="Focus timer"
+            onClick={() => open('focus')}
+          >
+            <Icon name="timer" />
+          </button>
           <button
             type="button"
             className="icon-btn"
+            title="Study room"
             aria-label="Study room settings"
             aria-haspopup="dialog"
             aria-expanded={overlay === 'room'}
@@ -99,7 +122,7 @@ export function Masthead() {
       {menuOpen && (
         <div id="mobile-menu" className="mobile-menu">
           <nav aria-label="Mobile">
-            {[{ href: '/', label: 'Home' }, ...NAV_LINKS, { href: '/about', label: 'About' }].map((link) => {
+            {[{ href: '/', label: 'Home' }, ...NAV_LINKS, { href: '/shelf', label: 'My shelf' }, { href: '/about', label: 'About' }].map((link) => {
               const current = link.href === '/' ? pathname === '/' : isActive(link.href);
               return (
                 <Link
@@ -123,7 +146,7 @@ export function Masthead() {
               open('room');
             }}
           >
-            <Icon name="sliders" /> Theme and effects
+            <Icon name="sliders" /> Theme, ambience and sound
           </button>
         </div>
       )}

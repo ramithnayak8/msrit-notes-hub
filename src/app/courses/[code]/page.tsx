@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Icon } from '@/components/ui/Icon';
+import { BookmarkButton, RecordVisit, SaveCourseButton } from '@/components/study/ShelfButtons';
 import {
   getCourse,
   getDepartment,
@@ -49,9 +50,11 @@ export default async function CoursePage({ params }: Params) {
     }
   }
   const topTopics = [...topicCount.entries()].sort((a, b) => b[1] - a[1]).slice(0, 10);
+  const courseRef = { code: course.code, title: course.title, dept: course.dept_code, semester: course.semester };
 
   return (
     <main>
+      <RecordVisit course={courseRef} />
       <section className="page-head" style={{ paddingBottom: 'var(--space-6)' }}>
         <div className="shell">
           <nav className="breadcrumb" aria-label="Breadcrumb">
@@ -73,6 +76,7 @@ export default async function CoursePage({ params }: Params) {
               <h1 style={{ marginTop: 12 }}>{course.title}</h1>
             </div>
             <div className="row gap-10 wrap">
+              <SaveCourseButton course={courseRef} />
               {schemes.length >= 2 && (
                 <Link href={`/syllabus?course=${course.code}`} className="btn btn-outline btn-sm">
                   <Icon name="diff" size={16} /> Syllabus changes
@@ -119,8 +123,21 @@ export default async function CoursePage({ params }: Params) {
                         <article key={q.id} id={`q-${q.id}`} className="question-card">
                           <div className="row between wrap gap-10" style={{ alignItems: 'baseline' }}>
                             <span className="result-cite">Q{q.number}</span>
-                            <span className="xs muted">
-                              {q.marks} marks · Unit {q.unit} · {q.level}
+                            <span className="row gap-10">
+                              <span className="xs muted">
+                                {q.marks} marks · Unit {q.unit} · {q.level}
+                              </span>
+                              <BookmarkButton
+                                question={{
+                                  id: q.id,
+                                  number: q.number,
+                                  text: q.text,
+                                  marks: q.marks,
+                                  courseCode: course.code,
+                                  courseTitle: course.title,
+                                  paper: `${paper.exam_type} · ${paper.month} ${paper.year}`,
+                                }}
+                              />
                             </span>
                           </div>
                           <p className="reading" style={{ marginTop: 10 }}>{q.text}</p>

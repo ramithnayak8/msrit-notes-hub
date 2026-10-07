@@ -6,6 +6,7 @@ import { Sheet } from '@/components/ui/Sheet';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { bestScore } from '@/lib/client/fuzzy';
 import { THEMES } from '@/lib/client/prefs';
+import { SCENES } from '@/components/ambience/scenes';
 import type { QuestionHit } from '@/lib/types';
 import { useStudyRoom } from './StudyRoomProvider';
 
@@ -31,7 +32,7 @@ const isTypingTarget = (target: EventTarget | null) =>
 /** Ctrl/Cmd+K (or "/") from anywhere: jump to any course, branch, page or setting. */
 export function CommandPalette() {
   const router = useRouter();
-  const { overlay, open, close, setPref } = useStudyRoom();
+  const { overlay, open, close, setPref, sound, setSound } = useStudyRoom();
   const isOpen = overlay === 'palette';
   const [query, setQuery] = useState('');
   const [active, setActive] = useState(0);
@@ -107,9 +108,32 @@ export function CommandPalette() {
       { id: 'p-branches', group: 'Go to', label: 'Browse branches', icon: 'library', run: () => go('/departments') },
       { id: 'p-syllabus', group: 'Go to', label: 'Syllabus changes', icon: 'diff', run: () => go('/syllabus') },
       { id: 'p-assistant', group: 'Go to', label: 'Study assistant', icon: 'message', run: () => go('/assistant') },
+      { id: 'p-shelf', group: 'Go to', label: 'My shelf: saved questions and streak', icon: 'bookmark', run: () => go('/shelf') },
       { id: 'p-home', group: 'Go to', label: 'Home', icon: 'home', run: () => go('/') },
       { id: 'p-about', group: 'Go to', label: 'About this archive', icon: 'info', run: () => go('/about') },
-      { id: 'a-room', group: 'Study room', label: 'Theme and effects', icon: 'sliders', run: () => open('room') },
+      { id: 'a-focus', group: 'Study room', label: 'Focus timer (Pomodoro)', icon: 'timer', run: () => open('focus') },
+      { id: 'a-room', group: 'Study room', label: 'Theme, ambience and effects', icon: 'sliders', run: () => open('room') },
+      {
+        id: 'a-sound',
+        group: 'Study room',
+        label: sound ? 'Turn ambient sound off' : 'Turn ambient sound on',
+        icon: sound ? 'volumeOff' : 'volume',
+        run: () => {
+          setSound(!sound);
+          close();
+        },
+      },
+      ...SCENES.map<Item>((scene) => ({
+        id: `s-${scene.id}`,
+        group: 'Study room',
+        label: `Ambience: ${scene.label}`,
+        hint: scene.hint,
+        icon: 'sparkles',
+        run: () => {
+          setPref('ambience', scene.id);
+          close();
+        },
+      })),
       ...THEMES.map((theme) => ({
         id: `t-${theme.id}`,
         group: 'Study room',
@@ -121,22 +145,30 @@ export function CommandPalette() {
         },
       })),
     ],
-    [go, open, close, setPref]
+    [go, open, close, setPref, sound, setSound]
   );
 
   const items = useMemo<Item[]>(() => {
     const q = query.trim();
     if (!q) return commands;
 
-    const rank = <T,>(list: T[], fields: (x: T) => string[], limit: number) =>
+    const score = <T,>(list: T[], fields: (x: T) => string[]) =>
       list
         .map((x) => ({ x, score: bestScore(q, fields(x)) }))
         .filter((r): r is { x: T; score: number } => r.score !== null)
-        .sort((a, b) => b.score - a.score)
-        .slice(0, limit)
-        .map((r) => r.x);
+        .sort((a, b) => b.score - a.score);
 
-    const courses = rank(catalog?.courses ?? [], (c) => [c.code, c.title], 5).map<Item>((c) => ({
+    const scoredCourses = score(catalog?.courses ?? [], (c) => [c.code, c.title]);
+    const scoredBranches = score((catalog?.departments ?? []).filter((d) => d.courses > 0), (d) => [d.code, d.name, d.fullName]);
+    const scoredCommands = score(commands, (c) => [c.label]);
+
+    // Once anything contains the query as written, scattered letter matches are noise.
+    const CONTIGUOUS = 500;
+    const best = Math.max(...[scoredCourses, scoredBranches, scoredCommands].map((l) => l[0]?.score ?? 0));
+    const rank = <T,>(list: { x: T; score: number }[], limit: number) =>
+      list.filter((r) => best < CONTIGUOUS || r.score >= CONTIGUOUS).slice(0, limit).map((r) => r.x);
+
+    const courses = rank(scoredCourses, 5).map<Item>((c) => ({
       id: `c-${c.code}`,
       group: 'Courses',
       label: c.title,
@@ -144,11 +176,7 @@ export function CommandPalette() {
       icon: 'book',
       run: () => go(`/courses/${c.code}`),
     }));
-    const branches = rank(
-      (catalog?.departments ?? []).filter((d) => d.courses > 0),
-      (d) => [d.code, d.name, d.fullName],
-      3
-    ).map<Item>((d) => ({
+    const branches = rank(scoredBranches, 3).map<Item>((d) => ({
       id: `d-${d.code}`,
       group: 'Branches',
       label: d.fullName,
@@ -168,9 +196,13 @@ export function CommandPalette() {
       icon: 'file',
       run: () => go(`/courses/${h.courseCode}#q-${h.id}`),
     }));
-    const pages = rank(commands, (c) => [c.label], 4);
+    const pages = rank(scoredCommands, 5);
+    // A command that matches better than every course goes first ("rain" -> Rainy window).
+    const commandsFirst = (scoredCommands[0]?.score ?? 0) > Math.max(scoredCourses[0]?.score ?? 0, scoredBranches[0]?.score ?? 0);
 
-    return [...courses, ...branches, ...search, ...questions, ...pages];
+    return commandsFirst
+      ? [...pages, ...courses, ...branches, ...search, ...questions]
+      : [...courses, ...branches, ...search, ...questions, ...pages];
   }, [query, catalog, hits, commands, go]);
 
   useEffect(() => setActive(0), [query]);

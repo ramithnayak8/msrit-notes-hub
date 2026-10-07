@@ -1,3 +1,4 @@
+import { BookmarkButton } from '@/components/study/ShelfButtons';
 import type { QuestionHit } from '@/lib/types';
 
 function escapeRegExp(input: string) {
@@ -32,7 +33,20 @@ export function QuestionResult({ hit, rank }: { hit: QuestionHit; rank: number }
           <span className="tag tag-accent tag-code">{hit.courseCode}</span>
           <span className="small soft">{hit.courseTitle}</span>
         </div>
-        <span className="relevance">{hit.score}% match</span>
+        <span className="row gap-10">
+          <span className="relevance">{hit.score}% match</span>
+          <BookmarkButton
+            question={{
+              id: hit.id,
+              number: hit.number,
+              text: hit.text,
+              marks: hit.marks,
+              courseCode: hit.courseCode,
+              courseTitle: hit.courseTitle,
+              paper: `${hit.examType} · ${hit.month} ${hit.year}`,
+            }}
+          />
+        </span>
       </div>
 
       <p className="result-text reading">{highlight(hit.text, hit.matchedTerms)}</p>
