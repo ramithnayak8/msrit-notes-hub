@@ -1,97 +1,98 @@
-# MSRIT Notes Hub
+# ConceptQuery (MSRIT Notes Hub)
 
-A searchable archive of previous year question papers, notes and syllabus schemes for
-Ramaiah Institute of Technology. Unlike a folder of Drive links, it indexes the **text of
-every question**, which is what makes topic search, plain-English filters and syllabus
-change tracking possible.
+A topic-aware search engine for Ramaiah Institute of Technology's previous year question
+papers and notes. Papers are split into individual questions, tagged with the concepts
+they examine, embedded as vectors and indexed, so a student can find every question on a
+topic across years and subjects, with a citation back to the paper, year and question number.
 
-## Running it
+```
+client/   Next.js (React) UI
+server/   Express API + ingestion worker (MongoDB Atlas, Atlas Search, Atlas Vector Search)
+```
+
+> The client still runs on its original placeholder data (SQLite, invented questions).
+> Connecting it to the server's API is the next step.
+
+## Running the backend
+
+Needs Node 22+ and Docker Desktop.
 
 ```bash
 npm install
-npm run seed     # builds data/msrit.db from scripts/seed-data.mjs
-npm run dev      # http://localhost:3000
+npm run db:up                         # MongoDB with Search + Vector Search (mongodb-atlas-local)
+cp server/.env.example server/.env    # then fill in the two JWT secrets (command is in the file)
+npm run db:indexes -w server          # create the search indexes
+npm run dev:server                    # API on http://localhost:4000, worker in the same process
 ```
 
-Node 22+ is required (the database uses the built-in `node:sqlite` module, so there is no
-native build step). Re-running `npm run seed` drops and rebuilds the database.
-
-## Stack
-
-| Layer     | Choice                                                        |
-| --------- | ------------------------------------------------------------- |
-| Framework | Next.js (App Router) + React + TypeScript                     |
-| Database  | SQLite via `node:sqlite` — real schema, foreign keys, indexes  |
-| Search    | In-process BM25F index built from the database at startup      |
-| Styling   | Plain CSS with design tokens in `src/app/globals.css`          |
-| Assistant | Retrieval over the same index; optional Claude API for wording |
-
-## How search works
-
-`src/lib/search.ts` runs four stages:
-
-1. **Query parsing** — pulls structure out of the sentence before matching anything:
-   relative year ranges (`last 3 years`), absolute ranges, course codes (`CS501`), course
-   names and abbreviations (`Operating Systems`, `OS`, `DBMS`), department names and mark
-   thresholds (`10 marks`). These become real filters; what remains is the topic.
-2. **Query expansion** — topic terms are expanded by a curated concept map plus term
-   co-occurrence statistics mined from the corpus' own topic tags, scored by pointwise
-   mutual information. Expanded terms carry lower weight than what the student typed, so
-   `multithreading` reaches a question that only says `thread` without drowning out exact
-   matches.
-3. **Ranking** — BM25 over weighted fields (topic tags and course codes outweigh body
-   text), with a small recency preference.
-4. **Termless fallback** — a query like *"what should I revise first for OS"* leaves a
-   filter but no topic. Those are ranked by how often each question's topics recur across
-   the filtered set, since repetition across papers is the real exam-prep signal.
-
-No embedding model or external API is needed for search. Swapping in vector embeddings
-later means replacing stages 2–3 behind the same `searchQuestions()` signature.
-
-## The study assistant
-
-`src/lib/chat.ts` runs the same retrieval, then answers. With no API key configured it
-composes the answer directly from the retrieved rows — for syllabus questions that is a
-structural diff, which is more accurate than anything a model would write. Set
-`ANTHROPIC_API_KEY` to have Claude phrase the answer from the same retrieved context
-instead; it is instructed to use nothing else, and the code falls back to the local answer
-on any API error.
+To use it:
 
 ```bash
-# optional, in .env.local
-ANTHROPIC_API_KEY=sk-ant-...
+# register at POST /api/auth/register with an @msrit.edu address; the verification link is
+# printed in the server log when SMTP isn't configured. Then give yourself upload rights:
+npm run user:role -w server -- you@msrit.edu moderator
+
+# queue a folder of PDFs (or upload through POST /api/documents)
+npm run import:papers -w server -- ../samples/papers
 ```
+
+`server/api.http` walks through every endpoint (VS Code REST Client extension).
+
+Topic tagging needs a free [Gemini API key](https://aistudio.google.com/apikey) (or a Groq
+key) in `server/.env`. Without one, everything else works and tagging falls back to
+nearest-topic matching on embeddings.
+
+## How it works
+
+### Ingestion (once per uploaded document, in a background worker)
+
+```
+upload -> GridFS + job -> extract -> segment -> tag -> embed -> write
+```
+
+| Stage   | What happens |
+| ------- | ------------ |
+| upload  | File type checked from its bytes, SHA-256 duplicate check, stored in GridFS, job queued in Mongo |
+| extract | pdf.js text layer, rebuilt into lines from word positions; scanned pages rendered and OCR'd with Tesseract |
+| segment | Rule-based parser for MSRIT layouts (Q1 / a) / i), marks, CO, Bloom level, units) plus paper-header metadata. Each question gets a confidence score; low-confidence ones (and papers the parser can't follow) go to the language model |
+| tag     | Candidate topics from the controlled vocabulary by embedding similarity; one batched language-model call per paper picks from them or proposes new topics for moderators |
+| embed   | `bge-small-en-v1.5` (384-dim) run locally with Transformers.js: no API cost |
+| write   | Questions stored with their vectors; near-identical questions across papers grouped (recurrence) |
+
+The worker claims jobs atomically (`findOneAndUpdate`), and each stage saves its output, so
+a failed job retries from the stage that failed.
+
+### Search (every query, no language model)
+
+1. **Rule-based query parsing** turns "DAA 10 marks questions from the last 3 years" into
+   filters (`courseCodes`, `marks`, `yearFrom`), leaving the topic text.
+2. The topic text is run through **Atlas Search** (BM25 keyword ranking) and **Atlas Vector
+   Search** (approximate nearest neighbour over the embeddings) with the same filters.
+3. The two result lists are merged with **reciprocal rank fusion**.
+
+### Evaluation
+
+`npm run eval -w server` runs the labelled queries in `server/eval/queries.json` in each
+mode and reports Recall@10 and MRR.
 
 ## API
 
-| Method | Endpoint                        | Returns                                    |
-| ------ | ------------------------------- | ------------------------------------------ |
-| GET    | `/api/search?q=…&limit=20`      | Ranked hits plus the parsed interpretation |
-| GET    | `/api/departments`              | Departments with coverage counts           |
-| GET    | `/api/departments?code=CSE`     | Courses in one department                  |
-| GET    | `/api/syllabus`                 | Courses with two or more tracked schemes   |
-| GET    | `/api/syllabus?course=CS501`    | Structural diff of the two latest schemes  |
-| GET    | `/api/stats`                    | Archive totals and indexed year range      |
-| POST   | `/api/chat`                     | Grounded answer; body `{ "question": … }`  |
+| Method | Endpoint | Purpose |
+| ------ | -------- | ------- |
+| POST | `/api/auth/register` · `/login` · `/refresh` · `/logout` | Accounts, JWT access + rotating refresh tokens |
+| GET | `/api/auth/verify-email?token=` · `/api/auth/me` | Email verification, current user |
+| POST | `/api/documents` | Upload a paper or notes (uploader) |
+| GET | `/api/documents` · `/:id` · `/:id/file` · `/:id/questions` | Documents, status, original file, extracted questions |
+| POST/DELETE | `/api/documents/:id/reprocess` · `/api/documents/:id` | Re-run the pipeline, remove (moderator) |
+| GET | `/api/search?q=&mode=hybrid\|vector\|keyword` | Search with parsed filters |
+| GET | `/api/analytics/topics` · `/distribution?by=` · `/recurring` · `/stats` | Topic frequency, distributions, repeated questions |
+| GET/POST/PATCH | `/api/topics` | Vocabulary; approve, rename or merge topics (moderator) |
+| GET/POST | `/api/review` · `/api/review/:id/resolve` | Moderation queue |
+| PATCH | `/api/questions/:id` | Correct a question; it is re-embedded (moderator) |
 
-## Layout
+## Running the client
 
+```bash
+npm run seed -w client
+npm run dev:client      # http://localhost:3000
 ```
-data/msrit.db          generated SQLite database
-scripts/seed-data.mjs  the dataset
-scripts/seed.mjs       schema + loader
-src/lib/db.ts          queries and the syllabus diff
-src/lib/search.ts      parsing, expansion, BM25 ranking
-src/lib/chat.ts        retrieval-augmented answering
-src/app/api/*          REST endpoints
-src/app/*              pages
-design/                the original design canvas artboards
-```
-
-## On the current data
-
-The papers in `scripts/seed-data.mjs` are realistic development samples written to
-exercise the system — not scans of real MSRIT papers. Course codes, question wording and
-counts are invented. Replacing them with digitised originals is the next step and requires
-no change to the pipeline: the seed script is the only thing that needs to point at real
-data.
