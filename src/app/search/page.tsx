@@ -4,6 +4,7 @@ import { Suspense, useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { SearchBox, ExampleQueries } from '@/components/SearchBox';
 import { QuestionResult } from '@/components/QuestionResult';
+import { Icon } from '@/components/ui/Icon';
 import type { SearchResponse } from '@/lib/types';
 
 const EXAMPLES = [
@@ -13,6 +14,21 @@ const EXAMPLES = [
   'neural networks CSE',
   'shortest path algorithms since 2022',
 ];
+
+function ResultSkeleton() {
+  return (
+    <div aria-hidden>
+      {[0, 1, 2].map((i) => (
+        <div key={i} className="skeleton-result">
+          <span className="skeleton skeleton-line" style={{ width: 160 }} />
+          <span className="skeleton skeleton-line" style={{ width: '92%', height: 18 }} />
+          <span className="skeleton skeleton-line" style={{ width: '70%', height: 18 }} />
+          <span className="skeleton skeleton-line" style={{ width: 260 }} />
+        </div>
+      ))}
+    </div>
+  );
+}
 
 function SearchResults() {
   const params = useSearchParams();
@@ -42,12 +58,18 @@ function SearchResults() {
   }, [q, run]);
 
   const maxYearCount = data ? Math.max(...data.yearSummary.map((y) => y.count), 1) : 1;
+  // Keep the previous results on screen (dimmed) while the next query loads.
+  const stale = loading && data !== null;
 
   return (
     <main>
-      <section className="section-sm">
+      <section className="page-head" style={{ paddingBottom: 'var(--space-6)' }}>
         <div className="shell">
-          <SearchBox key={q} initial={q} large autoFocus={!q} />
+          <p className="eyebrow">Search the archive</p>
+          <h1 className="visually-hidden">Search questions</h1>
+          <div style={{ marginTop: 16, maxWidth: 820 }}>
+            <SearchBox key={q} initial={q} large autoFocus={!q} />
+          </div>
 
           {!q && (
             <div style={{ marginTop: 16 }}>
@@ -55,72 +77,63 @@ function SearchResults() {
             </div>
           )}
 
-          {data && !loading && (
-            <div className="interpret" style={{ marginTop: 16 }}>
-              <span className="label" style={{ color: 'var(--accent)' }}>Interpreted as</span>
-              {data.query.explanation.length ? (
-                data.query.explanation.map((part) => (
-                  <span key={part} className="tag tag-accent">{part}</span>
-                ))
-              ) : (
-                <span className="tag tag-accent">free text</span>
-              )}
-              <span className="muted xs nums">
-                {data.total} match{data.total === 1 ? '' : 'es'} · {data.tookMs} ms
-              </span>
-            </div>
-          )}
+          <div aria-live="polite" aria-atomic="true">
+            {data && (
+              <div className={`interpret${stale ? ' is-stale' : ''}`} style={{ marginTop: 16 }}>
+                <span className="label" style={{ color: 'var(--accent)' }}>Interpreted as</span>
+                {data.query.explanation.length ? (
+                  data.query.explanation.map((part) => (
+                    <span key={part} className="tag tag-accent">{part}</span>
+                  ))
+                ) : (
+                  <span className="tag tag-accent">free text</span>
+                )}
+                <span className="muted xs nums">
+                  {data.total} match{data.total === 1 ? '' : 'es'} · {data.tookMs} ms
+                </span>
+              </div>
+            )}
+          </div>
         </div>
       </section>
 
-      <section style={{ paddingBottom: 72 }}>
+      <section style={{ paddingBottom: 'var(--space-16)' }}>
         <div className="shell">
-          {loading && (
-            <div className="row gap-10 muted small" style={{ padding: '40px 0' }}>
-              <span className="spinner" />
-              Searching the index…
-            </div>
-          )}
+          {loading && !data && <ResultSkeleton />}
 
           {error && (
-            <div className="notice" style={{ borderLeftColor: 'var(--negative)' }}>
-              {error}
+            <div className="notice row between wrap gap-12" style={{ borderLeftColor: 'var(--negative)' }} role="alert">
+              <span>{error}. The archive could not be reached.</span>
+              <button type="button" className="btn btn-outline btn-sm" onClick={() => run(q)}>
+                <Icon name="reset" size={15} /> Try again
+              </button>
             </div>
           )}
 
           {!q && !loading && (
             <div className="empty">
-              <p className="serif" style={{ fontSize: 19, color: 'var(--ink)' }}>
-                Search across {`every indexed question`}
-              </p>
+              <span className="empty-mark"><Icon name="bookOpen" size={40} strokeWidth={1.2} /></span>
+              <p className="empty-title">What are you revising today?</p>
               <p className="small" style={{ marginTop: 8 }}>
-                Try a topic, a course code, or a full sentence with a time range.
+                Try a topic, a course code, or a full sentence with a time range. Tip: press{' '}
+                <span className="kbd">/</span> anywhere to jump straight to a course.
               </p>
             </div>
           )}
 
-          {data && !loading && data.hits.length === 0 && (
-            <div className="empty">
-              <p className="serif" style={{ fontSize: 19, color: 'var(--ink)' }}>
-                No questions matched that query
-              </p>
+          {data && data.hits.length === 0 && (
+            <div className={`empty${stale ? ' is-stale' : ''}`}>
+              <span className="empty-mark"><Icon name="search" size={40} strokeWidth={1.2} /></span>
+              <p className="empty-title">Nothing on the shelves for that</p>
               <p className="small" style={{ marginTop: 8 }}>
-                Try removing a filter, or search for a broader topic such as
-                &ldquo;trees&rdquo; or &ldquo;scheduling&rdquo;.
+                Try removing a filter, or search for a broader topic such as &ldquo;trees&rdquo; or
+                &ldquo;scheduling&rdquo;.
               </p>
             </div>
           )}
 
-          {data && !loading && data.hits.length > 0 && (
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'minmax(0, 1fr) 260px',
-                gap: 48,
-                alignItems: 'start',
-              }}
-              className="search-layout"
-            >
+          {data && data.hits.length > 0 && (
+            <div className={`search-layout${stale ? ' is-stale' : ''}`} aria-busy={stale || undefined}>
               <div className="divide">
                 {data.hits.map((hit, i) => (
                   <QuestionResult key={hit.id} hit={hit} rank={i + 1} />
@@ -132,7 +145,7 @@ function SearchResults() {
                 )}
               </div>
 
-              <aside className="stack gap-24" style={{ position: 'sticky', top: 86 }}>
+              <aside className="stack gap-20 search-aside" aria-label="Result breakdown">
                 <div className="panel panel-pad">
                   <div className="label">By year</div>
                   <div className="stack gap-10" style={{ marginTop: 14 }}>
@@ -143,10 +156,7 @@ function SearchResults() {
                           <span>{y.count}</span>
                         </div>
                         <div className="bar-track" style={{ marginTop: 5 }}>
-                          <div
-                            className="bar-fill"
-                            style={{ width: `${(y.count / maxYearCount) * 100}%` }}
-                          />
+                          <div className="bar-fill" style={{ width: `${(y.count / maxYearCount) * 100}%` }} />
                         </div>
                       </div>
                     ))}
@@ -172,11 +182,7 @@ function SearchResults() {
                   </p>
                   <div className="row wrap gap-6" style={{ marginTop: 12 }}>
                     {data.query.expandedTerms.slice(0, 12).map((t) => (
-                      <span
-                        key={t.term}
-                        className={`tag${t.weight >= 0.9 ? ' tag-accent' : ''}`}
-                        title={`weight ${t.weight.toFixed(2)}`}
-                      >
+                      <span key={t.term} className={`tag${t.weight >= 0.9 ? ' tag-accent' : ''}`} title={`weight ${t.weight.toFixed(2)}`}>
                         {t.term}
                       </span>
                     ))}
@@ -187,20 +193,13 @@ function SearchResults() {
           )}
         </div>
       </section>
-
-      <style>{`
-        @media (max-width: 900px) {
-          .search-layout { grid-template-columns: minmax(0, 1fr) !important; gap: 32px !important; }
-          .search-layout aside { position: static !important; }
-        }
-      `}</style>
     </main>
   );
 }
 
 export default function SearchPage() {
   return (
-    <Suspense fallback={<div className="shell section-sm"><span className="spinner" /></div>}>
+    <Suspense fallback={<div className="shell section-sm"><ResultSkeleton /></div>}>
       <SearchResults />
     </Suspense>
   );

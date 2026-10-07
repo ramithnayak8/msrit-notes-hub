@@ -1,7 +1,13 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getStats, getYearRange } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
+
+export const metadata: Metadata = {
+  title: 'About',
+  description: 'How ConceptQuery indexes, searches and answers questions about MSRIT previous year papers.',
+};
 
 const ENDPOINTS = [
   { method: 'GET', path: '/api/search?q=…&limit=20', description: 'Ranked question search with parsed filters' },
@@ -19,10 +25,10 @@ export default function AboutPage() {
 
   return (
     <main>
-      <section className="section-sm">
+      <section className="page-head">
         <div className="shell-narrow">
-          <div className="label">About</div>
-          <h1 style={{ marginTop: 14 }}>A topic-aware retrieval platform for previous year question papers</h1>
+          <p className="eyebrow">About</p>
+          <h1>A topic-aware retrieval platform for previous year question papers</h1>
           <p className="lead" style={{ marginTop: 16 }}>
             ConceptQuery indexes examination content at the granularity of the individual question and
             organises it by concept instead of by subject, so a topic can be retrieved irrespective of
@@ -89,7 +95,7 @@ export default function AboutPage() {
               <div className="divide">
                 <div style={{ padding: '20px 24px' }}>
                   <div className="feature-num">Step 01</div>
-                  <h3 style={{ marginTop: 8, fontSize: 16.5 }}>Query parsing</h3>
+                  <h3 style={{ marginTop: 8 }}>Query parsing</h3>
                   <p className="small soft" style={{ marginTop: 8 }}>
                     The raw sentence is scanned for structure before anything is matched: relative
                     year ranges (&ldquo;last 3 years&rdquo;), absolute ranges, course codes,
@@ -99,7 +105,7 @@ export default function AboutPage() {
                 </div>
                 <div style={{ padding: '20px 24px' }}>
                   <div className="feature-num">Step 02</div>
-                  <h3 style={{ marginTop: 8, fontSize: 16.5 }}>Query expansion</h3>
+                  <h3 style={{ marginTop: 8 }}>Query expansion</h3>
                   <p className="small soft" style={{ marginTop: 8 }}>
                     Topic terms are expanded two ways: a curated concept map for the obvious
                     equivalences, and term co-occurrence statistics mined from the corpus&rsquo; own
@@ -110,7 +116,7 @@ export default function AboutPage() {
                 </div>
                 <div style={{ padding: '20px 24px' }}>
                   <div className="feature-num">Step 03</div>
-                  <h3 style={{ marginTop: 8, fontSize: 16.5 }}>Ranking</h3>
+                  <h3 style={{ marginTop: 8 }}>Ranking</h3>
                   <p className="small soft" style={{ marginTop: 8 }}>
                     Documents are scored with BM25 over weighted fields — topic tags and course codes
                     count for more than body text — then nudged by recency so current papers surface
@@ -119,7 +125,7 @@ export default function AboutPage() {
                 </div>
                 <div style={{ padding: '20px 24px' }}>
                   <div className="feature-num">Step 04</div>
-                  <h3 style={{ marginTop: 8, fontSize: 16.5 }}>Grounded answering</h3>
+                  <h3 style={{ marginTop: 8 }}>Grounded answering</h3>
                   <p className="small soft" style={{ marginTop: 8 }}>
                     The study assistant runs the same retrieval, then composes an answer from the
                     retrieved rows and cites them. With no model key configured it answers directly

@@ -1,14 +1,25 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { CourseBook } from '@/components/browse/CourseBook';
+import { Icon } from '@/components/ui/Icon';
 import { getCoursesByDept, getDepartment } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 
-export default async function DepartmentPage({
-  params,
-}: {
-  params: Promise<{ code: string }>;
-}) {
+type Params = { params: Promise<{ code: string }> };
+
+export async function generateMetadata({ params }: Params): Promise<Metadata> {
+  const department = getDepartment((await params).code);
+  return department
+    ? {
+        title: department.full_name,
+        description: `Previous year papers, notes and syllabus schemes for ${department.full_name}, semester by semester.`,
+      }
+    : { title: 'Branch not found' };
+}
+
+export default async function DepartmentPage({ params }: Params) {
   const { code } = await params;
   const department = getDepartment(code);
   if (!department) notFound();
@@ -31,23 +42,21 @@ export default async function DepartmentPage({
 
   return (
     <main>
-      <section className="section-sm">
+      <section className="page-head">
         <div className="shell">
-          <p className="small muted">
-            <Link href="/departments">Branches</Link> <span className="muted">/</span>{' '}
-            {department.code}
-          </p>
+          <nav className="breadcrumb" aria-label="Breadcrumb">
+            <Link href="/departments">Branches</Link>
+            <span aria-hidden>/</span>
+            <span aria-current="page">{department.code}</span>
+          </nav>
 
-          <div className="row between wrap gap-20" style={{ marginTop: 16, alignItems: 'flex-end' }}>
+          <div className="row between wrap gap-20" style={{ alignItems: 'flex-end' }}>
             <div>
               <h1>{department.name}</h1>
               <p className="lead" style={{ marginTop: 8 }}>{department.full_name}</p>
             </div>
-            <Link
-              href={`/search?q=${encodeURIComponent(department.code)}`}
-              className="btn btn-outline btn-sm"
-            >
-              Search within {department.code}
+            <Link href={`/search?q=${encodeURIComponent(department.code)}`} className="btn btn-outline btn-sm">
+              <Icon name="search" size={16} /> Search within {department.code}
             </Link>
           </div>
 
@@ -74,51 +83,35 @@ export default async function DepartmentPage({
         </div>
       </section>
 
-      <section style={{ paddingBottom: 72 }}>
-        <div className="shell stack gap-32">
+      <section style={{ paddingBottom: 'var(--space-16)' }}>
+        <div className="shell stack gap-40">
           {[...bySemester.entries()]
             .sort((a, b) => a[0] - b[0])
             .map(([semester, semesterCourses]) => (
-              <div key={semester}>
-                <div className="label">Semester {semester}</div>
-                <div className="panel panel-pad" style={{ marginTop: 12 }}>
-                  <div className="table-wrap">
-                    <table className="table">
-                      <thead>
-                        <tr>
-                          <th style={{ width: 90 }}>Code</th>
-                          <th>Course</th>
-                          <th className="nums">Credits</th>
-                          <th className="nums">Papers</th>
-                          <th className="nums">Questions</th>
-                          <th className="nums">Notes</th>
-                          <th />
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {semesterCourses.map((c) => (
-                          <tr key={c.code}>
-                            <td>
-                              <span className="tag tag-code">{c.code}</span>
-                            </td>
-                            <td style={{ fontWeight: 500 }}>{c.title}</td>
-                            <td className="num">{c.credits}</td>
-                            <td className="num">{c.paper_count}</td>
-                            <td className="num">{c.question_count}</td>
-                            <td className="num">{c.note_count}</td>
-                            <td style={{ textAlign: 'right' }}>
-                              <Link href={`/courses/${c.code}`} className="small">
-                                Open →
-                              </Link>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+              <section key={semester} aria-labelledby={`sem-${semester}`}>
+                <div className="row gap-12" style={{ alignItems: 'baseline' }}>
+                  <h2 id={`sem-${semester}`} style={{ fontSize: 30 }}>Semester {semester}</h2>
+                  <span className="xs muted">
+                    {semesterCourses.length} course{semesterCourses.length === 1 ? '' : 's'}
+                  </span>
                 </div>
-              </div>
+                <div className="book-grid" style={{ marginTop: 18 }}>
+                  {semesterCourses.map((c) => (
+                    // SQLite rows have a null prototype; client components need plain objects.
+                    <CourseBook key={c.code} course={{ ...c }} from={department.accent_from} to={department.accent_to} />
+                  ))}
+                </div>
+              </section>
             ))}
+
+          {!courses.length && (
+            <div className="empty">
+              <p className="empty-title">This shelf is still empty</p>
+              <p className="small" style={{ marginTop: 8 }}>
+                No courses have been indexed for {department.name} yet.
+              </p>
+            </div>
+          )}
         </div>
       </section>
     </main>

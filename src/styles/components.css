@@ -397,7 +397,7 @@
 
 .empty { text-align: center; padding: 64px 24px; color: var(--ink-muted); }
 .empty-title { font-family: var(--font-head); font-size: 28px; font-weight: 600; color: var(--ink); }
-.empty-mark { margin: 0 auto 18px; color: var(--accent); opacity: 0.85; }
+.empty-mark { display: flex; justify-content: center; margin-bottom: 18px; color: var(--accent); opacity: 0.85; }
 
 .spinner {
   width: 16px; height: 16px;
@@ -470,3 +470,9 @@
   .section { padding: var(--space-20) 0; }
   .page-head { padding: var(--space-16) 0 var(--space-10); }
 }
+
+/* ── Full-page states (404, error) ────────────────────────────── */
+
+.state-page { display: flex; align-items: center; min-height: calc(70dvh - var(--masthead-h)); padding: var(--space-16) 0; }
+.state-page .empty-mark { display: inline-grid; margin-bottom: 18px; }
+@media (min-width: 960px) { .assistant-prompts-mobile { display: none; } }

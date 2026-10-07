@@ -58,8 +58,20 @@ export function Masthead() {
         </nav>
 
         <div className="masthead-actions">
-          <Link href="/search" className="icon-btn" aria-label="Search the archive">
+          {/* A real link to /search until JavaScript loads; then it opens the palette. */}
+          <Link
+            href="/search"
+            className="search-trigger"
+            aria-label="Search (Ctrl K)"
+            aria-haspopup="dialog"
+            onClick={(event) => {
+              event.preventDefault();
+              open('palette');
+            }}
+          >
             <Icon name="search" />
+            <span className="search-trigger-text">Search everything</span>
+            <span className="kbd search-trigger-kbd">Ctrl K</span>
           </Link>
           <button
             type="button"

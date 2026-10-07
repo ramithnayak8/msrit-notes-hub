@@ -4,6 +4,7 @@ import { Masthead } from '@/components/layout/Masthead';
 import { Footer } from '@/components/layout/Footer';
 import { StudyRoomProvider } from '@/components/study/StudyRoomProvider';
 import { StudyRoomPanel } from '@/components/study/StudyRoomPanel';
+import { CommandPalette } from '@/components/study/CommandPalette';
 import { BOOT_SCRIPT } from '@/lib/client/prefs';
 import { INTRO_BOOT } from '@/lib/client/intro';
 import './globals.css';
@@ -93,6 +94,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <Footer />
           </div>
           <StudyRoomPanel />
+          <CommandPalette />
         </StudyRoomProvider>
       </body>
     </html>

@@ -1,5 +1,7 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { Icon } from '@/components/ui/Icon';
 import {
   getCourse,
   getDepartment,
@@ -11,7 +13,19 @@ import {
 
 export const dynamic = 'force-dynamic';
 
-export default async function CoursePage({ params }: { params: Promise<{ code: string }> }) {
+type Params = { params: Promise<{ code: string }> };
+
+export async function generateMetadata({ params }: Params): Promise<Metadata> {
+  const course = getCourse((await params).code);
+  return course
+    ? {
+        title: `${course.title} (${course.code})`,
+        description: `Previous year questions, notes and syllabus for ${course.title}, semester ${course.semester}.`,
+      }
+    : { title: 'Course not found' };
+}
+
+export default async function CoursePage({ params }: Params) {
   const { code } = await params;
   const course = getCourse(code);
   if (!course) notFound();
@@ -38,168 +52,162 @@ export default async function CoursePage({ params }: { params: Promise<{ code: s
 
   return (
     <main>
-      <section className="section-sm">
+      <section className="page-head" style={{ paddingBottom: 'var(--space-6)' }}>
         <div className="shell">
-          <p className="small muted">
-            <Link href="/departments">Branches</Link> <span className="muted">/</span>{' '}
-            <Link href={`/departments/${course.dept_code}`}>{course.dept_code}</Link>{' '}
-            <span className="muted">/</span> {course.code}
-          </p>
+          <nav className="breadcrumb" aria-label="Breadcrumb">
+            <Link href="/departments">Branches</Link>
+            <span aria-hidden>/</span>
+            <Link href={`/departments/${course.dept_code}`}>{course.dept_code}</Link>
+            <span aria-hidden>/</span>
+            <span aria-current="page">{course.code}</span>
+          </nav>
 
           <div className="row between wrap gap-20" style={{ marginTop: 16, alignItems: 'flex-end' }}>
             <div>
-              <div className="row gap-10">
+              <div className="row gap-10 wrap">
                 <span className="tag tag-code tag-accent">{course.code}</span>
                 <span className="small muted">
-                  Semester {course.semester} · {course.credits} credits ·{' '}
-                  {department?.name ?? course.dept_code}
+                  Semester {course.semester} · {course.credits} credits · {department?.name ?? course.dept_code}
                 </span>
               </div>
               <h1 style={{ marginTop: 12 }}>{course.title}</h1>
             </div>
-            <div className="row gap-10">
+            <div className="row gap-10 wrap">
               {schemes.length >= 2 && (
                 <Link href={`/syllabus?course=${course.code}`} className="btn btn-outline btn-sm">
-                  Syllabus changes
+                  <Icon name="diff" size={16} /> Syllabus changes
                 </Link>
               )}
-              <Link
-                href={`/search?q=${encodeURIComponent(course.code)}`}
-                className="btn btn-primary btn-sm"
-              >
-                Search this course
+              <Link href={`/search?q=${encodeURIComponent(course.code)}`} className="btn btn-primary btn-sm">
+                <Icon name="search" size={16} /> Search this course
               </Link>
             </div>
           </div>
         </div>
       </section>
 
-      <section style={{ paddingBottom: 72 }}>
-        <div className="shell">
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'minmax(0, 1fr) 280px',
-              gap: 48,
-              alignItems: 'start',
-            }}
-            className="course-layout"
-          >
-            <div className="stack gap-32">
-              {papers.map((paper) => {
-                const paperQuestions = byPaper.get(paper.id) ?? [];
-                return (
-                  <div key={paper.id}>
-                    <div className="row between wrap gap-12" style={{ alignItems: 'baseline' }}>
-                      <h3 style={{ fontSize: 17 }}>
-                        {paper.exam_type} · {paper.month} {paper.year}
-                      </h3>
-                      <span className="xs muted nums">
-                        {paperQuestions.length} question{paperQuestions.length === 1 ? '' : 's'}
-                      </span>
-                    </div>
+      <div className="shell">
+        <nav className="section-nav" aria-label="On this page">
+          <a href="#papers" className="example">Papers · {papers.length}</a>
+          <a href="#topics" className="example">Most examined topics</a>
+          <a href="#notes" className="example">Notes · {notes.length}</a>
+          {schemes.length >= 2 && (
+            <Link href={`/syllabus?course=${course.code}`} className="example">Syllabus · {schemes.length} schemes</Link>
+          )}
+        </nav>
+      </div>
 
-                    <div className="panel" style={{ marginTop: 12 }}>
-                      <div className="divide">
-                        {paperQuestions.map((q) => (
-                          <div key={q.id} style={{ padding: '16px 20px' }}>
-                            <div className="row between wrap gap-10" style={{ alignItems: 'baseline' }}>
-                              <span className="result-cite">Q{q.number}</span>
-                              <span className="xs muted">
-                                {q.marks} marks · Unit {q.unit} · {q.level}
-                              </span>
-                            </div>
-                            <p className="serif" style={{ marginTop: 8, fontSize: 15.5, lineHeight: 1.6 }}>
-                              {q.text}
-                            </p>
-                            <div className="row wrap gap-6" style={{ marginTop: 10 }}>
-                              {q.topics.split('|').filter(Boolean).map((t) => (
-                                <span key={t} className="tag">{t}</span>
-                              ))}
-                            </div>
+      <section style={{ padding: 'var(--space-8) 0 var(--space-16)' }}>
+        <div className="shell course-layout">
+          <div id="papers" className="stack gap-32" style={{ scrollMarginTop: 'calc(var(--masthead-h) + 70px)' }}>
+            {papers.map((paper) => {
+              const paperQuestions = byPaper.get(paper.id) ?? [];
+              return (
+                <section key={paper.id} aria-labelledby={`paper-${paper.id}`}>
+                  <div className="row between wrap gap-12" style={{ alignItems: 'baseline' }}>
+                    <h2 id={`paper-${paper.id}`} style={{ fontSize: 26 }}>
+                      {paper.exam_type} · {paper.month} {paper.year}
+                    </h2>
+                    <span className="xs muted nums">
+                      {paperQuestions.length} question{paperQuestions.length === 1 ? '' : 's'}
+                    </span>
+                  </div>
+
+                  <div className="panel" style={{ marginTop: 12 }}>
+                    <div className="divide">
+                      {paperQuestions.map((q) => (
+                        <article key={q.id} id={`q-${q.id}`} className="question-card">
+                          <div className="row between wrap gap-10" style={{ alignItems: 'baseline' }}>
+                            <span className="result-cite">Q{q.number}</span>
+                            <span className="xs muted">
+                              {q.marks} marks · Unit {q.unit} · {q.level}
+                            </span>
                           </div>
-                        ))}
-                      </div>
+                          <p className="reading" style={{ marginTop: 10 }}>{q.text}</p>
+                          <div className="row wrap gap-6" style={{ marginTop: 12 }}>
+                            {q.topics.split('|').filter(Boolean).map((t) => (
+                              <span key={t} className="tag">{t}</span>
+                            ))}
+                          </div>
+                        </article>
+                      ))}
                     </div>
                   </div>
-                );
-              })}
+                </section>
+              );
+            })}
 
-              {!papers.length && (
-                <div className="empty">
-                  <p>No papers have been indexed for this course yet.</p>
+            {!papers.length && (
+              <div className="empty">
+                <p className="empty-title">No papers on this shelf yet</p>
+                <p className="small" style={{ marginTop: 8 }}>No papers have been indexed for this course.</p>
+              </div>
+            )}
+          </div>
+
+          <aside className="stack gap-24 course-aside">
+            <div className="panel panel-pad">
+              <div className="label">At a glance</div>
+              <div className="stack gap-10" style={{ marginTop: 14 }}>
+                {[
+                  ['Papers', papers.length],
+                  ['Questions', questions.length],
+                  ['Note sets', notes.length],
+                  ['Schemes tracked', schemes.length],
+                ].map(([label, value]) => (
+                  <div key={label} className="row between small">
+                    <span className="muted">{label}</span>
+                    <span className="nums">{value}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div id="topics" className="panel panel-pad" style={{ scrollMarginTop: 'calc(var(--masthead-h) + 70px)' }}>
+              <div className="label">Most examined topics</div>
+              {topTopics.length > 0 ? (
+                <div className="stack gap-6" style={{ marginTop: 14 }}>
+                  {topTopics.map(([topic, count]) => (
+                    <Link
+                      key={topic}
+                      href={`/search?q=${encodeURIComponent(`${topic} ${course.code}`)}`}
+                      className="topic-row"
+                    >
+                      <span>{topic}</span>
+                      <span className="muted nums xs">{count}</span>
+                    </Link>
+                  ))}
                 </div>
+              ) : (
+                <p className="small muted" style={{ marginTop: 10 }}>No topics tagged yet.</p>
               )}
             </div>
 
-            <aside className="stack gap-24" style={{ position: 'sticky', top: 86 }}>
-              <div className="panel panel-pad">
-                <div className="label">At a glance</div>
-                <div className="stack gap-10" style={{ marginTop: 14 }}>
-                  <div className="row between small">
-                    <span className="muted">Papers</span>
-                    <span className="nums">{papers.length}</span>
-                  </div>
-                  <div className="row between small">
-                    <span className="muted">Questions</span>
-                    <span className="nums">{questions.length}</span>
-                  </div>
-                  <div className="row between small">
-                    <span className="muted">Note sets</span>
-                    <span className="nums">{notes.length}</span>
-                  </div>
-                  <div className="row between small">
-                    <span className="muted">Schemes tracked</span>
-                    <span className="nums">{schemes.length}</span>
-                  </div>
-                </div>
-              </div>
-
-              {topTopics.length > 0 && (
-                <div className="panel panel-pad">
-                  <div className="label">Most examined topics</div>
-                  <div className="stack gap-8" style={{ marginTop: 14 }}>
-                    {topTopics.map(([topic, count]) => (
-                      <Link
-                        key={topic}
-                        href={`/search?q=${encodeURIComponent(`${topic} ${course.code}`)}`}
-                        className="row between gap-10 small"
-                        style={{ color: 'inherit' }}
-                      >
-                        <span className="soft">{topic}</span>
-                        <span className="muted nums xs">{count}</span>
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {notes.length > 0 && (
-                <div className="panel panel-pad">
-                  <div className="label">Notes</div>
-                  <div className="stack gap-12" style={{ marginTop: 14 }}>
-                    {notes.map((n) => (
-                      <div key={n.id}>
-                        <p className="small" style={{ fontWeight: 500 }}>{n.title}</p>
+            <div id="notes" className="panel panel-pad" style={{ scrollMarginTop: 'calc(var(--masthead-h) + 70px)' }}>
+              <div className="label">Notes</div>
+              {notes.length > 0 ? (
+                <div className="stack gap-12" style={{ marginTop: 14 }}>
+                  {notes.map((n) => (
+                    <div key={n.id} className="row-top gap-10">
+                      <span className="muted" style={{ marginTop: 2 }}><Icon name="file" size={16} /></span>
+                      <div>
+                        <p className="small" style={{ fontWeight: 600 }}>{n.title}</p>
                         <p className="xs muted" style={{ marginTop: 2 }}>
                           {n.kind} · {n.pages} pages · {n.contributor} · {n.year}
                         </p>
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  ))}
                 </div>
+              ) : (
+                <p className="small muted" style={{ marginTop: 10 }}>
+                  No notes yet. <Link href="/about#contribute">Contribute a set</Link>.
+                </p>
               )}
-            </aside>
-          </div>
+            </div>
+          </aside>
         </div>
       </section>
-
-      <style>{`
-        @media (max-width: 900px) {
-          .course-layout { grid-template-columns: minmax(0, 1fr) !important; gap: 32px !important; }
-          .course-layout aside { position: static !important; }
-        }
-      `}</style>
     </main>
   );
 }

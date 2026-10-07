@@ -1,7 +1,13 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { diffSyllabus, getSyllabusCourses, getSyllabusUnits } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
+
+export const metadata: Metadata = {
+  title: 'Syllabus changes',
+  description: 'Exactly which topics were added or removed between syllabus schemes, course by course.',
+};
 
 export default async function SyllabusPage({
   searchParams,
@@ -16,11 +22,11 @@ export default async function SyllabusPage({
 
   return (
     <main>
-      <section className="section-sm">
+      <section className="page-head">
         <div className="shell">
-          <div className="label">Syllabus tracking</div>
-          <h1 style={{ marginTop: 14 }}>What changed between schemes</h1>
-          <p className="lead" style={{ marginTop: 14, maxWidth: 680 }}>
+          <p className="eyebrow">Syllabus tracking</p>
+          <h1>What changed between schemes</h1>
+          <p className="lead">
             Each course stores its scheme per academic year. Comparing two years is a structural
             diff over unit topics, so additions and removals are exact rather than inferred.
           </p>
@@ -31,11 +37,7 @@ export default async function SyllabusPage({
                 key={t.code}
                 href={`/syllabus?course=${t.code}`}
                 className={`example${t.code === selected ? ' active' : ''}`}
-                style={
-                  t.code === selected
-                    ? { borderColor: 'var(--accent)', color: 'var(--accent)', background: 'var(--accent-soft)' }
-                    : undefined
-                }
+                aria-current={t.code === selected ? 'page' : undefined}
               >
                 {t.code} — {t.title}
               </Link>
@@ -44,11 +46,11 @@ export default async function SyllabusPage({
         </div>
       </section>
 
-      <section style={{ paddingBottom: 72 }}>
+      <section style={{ paddingBottom: 'var(--space-16)' }}>
         <div className="shell">
           {!diff && (
             <div className="empty">
-              <p>No course has two tracked schemes yet.</p>
+              <p className="empty-title">No course has two tracked schemes yet</p>
             </div>
           )}
 
@@ -63,7 +65,7 @@ export default async function SyllabusPage({
                         View papers →
                       </Link>
                     </div>
-                    <h2 style={{ marginTop: 12, fontSize: 24 }}>{diff.courseTitle}</h2>
+                    <h2 style={{ marginTop: 12, fontSize: 32 }}>{diff.courseTitle}</h2>
                   </div>
                   <div className="small muted" style={{ textAlign: 'right' }}>
                     <div>
@@ -101,7 +103,7 @@ export default async function SyllabusPage({
 
               <div className="grid-2" style={{ marginTop: 28, gap: 28 }}>
                 <div>
-                  <h3 style={{ fontSize: 17 }}>Added in {diff.to.academic_year}</h3>
+                  <h3>Added in {diff.to.academic_year}</h3>
                   <div className="stack gap-8" style={{ marginTop: 14 }}>
                     {diff.added.length ? (
                       diff.added.map((a) => (
@@ -119,7 +121,7 @@ export default async function SyllabusPage({
                 </div>
 
                 <div>
-                  <h3 style={{ fontSize: 17 }}>Removed since {diff.from.academic_year}</h3>
+                  <h3>Removed since {diff.from.academic_year}</h3>
                   <div className="stack gap-8" style={{ marginTop: 14 }}>
                     {diff.removed.length ? (
                       diff.removed.map((r) => (
@@ -138,7 +140,7 @@ export default async function SyllabusPage({
               </div>
 
               <div style={{ marginTop: 44 }}>
-                <h3 style={{ fontSize: 17 }}>
+                <h3>
                   Current scheme — {diff.to.academic_year}
                 </h3>
                 <div className="panel" style={{ marginTop: 14 }}>
@@ -150,7 +152,7 @@ export default async function SyllabusPage({
                       return (
                         <div key={unit.unit} style={{ padding: '18px 22px' }}>
                           <div className="row between wrap gap-10" style={{ alignItems: 'baseline' }}>
-                            <h4 style={{ fontSize: 15.5 }}>
+                            <h4>
                               Unit {unit.unit} — {unit.unitTitle}
                             </h4>
                             <span className="xs muted nums">{unit.hours} hours</span>

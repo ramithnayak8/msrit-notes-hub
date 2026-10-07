@@ -118,11 +118,19 @@ function Assistant() {
         <div className="assistant-log" ref={logRef}>
           {turns.length === 0 && !pending && (
             <div style={{ margin: 'auto', maxWidth: 520, textAlign: 'center' }}>
-              <h2 style={{ fontSize: 24 }}>Ask the archive what to revise</h2>
+              <h2 style={{ fontSize: 34 }}>Ask the archive what to revise</h2>
               <p className="lead" style={{ marginTop: 12, fontSize: 15 }}>
                 The assistant searches indexed question papers and syllabus schemes, then answers
                 from what it finds — with the source papers cited underneath.
               </p>
+              {/* The sidebar with these prompts is hidden on small screens. */}
+              <div className="examples assistant-prompts-mobile" style={{ marginTop: 20, justifyContent: 'center' }}>
+                {PROMPTS.map((p) => (
+                  <button key={p} type="button" className="example" onClick={() => ask(p)}>
+                    {p}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 

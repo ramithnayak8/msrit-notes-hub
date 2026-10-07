@@ -1,7 +1,14 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
+import { Bookshelf } from '@/components/browse/Bookshelf';
 import { getDepartments } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
+
+export const metadata: Metadata = {
+  title: 'Branches',
+  description: 'Browse previous year papers, notes and syllabus schemes by branch and semester.',
+};
 
 const STATUS_LABEL: Record<string, { text: string; className: string }> = {
   active: { text: 'Indexed', className: 'tag tag-positive' },
@@ -14,20 +21,27 @@ export default function DepartmentsPage() {
 
   return (
     <main>
-      <section className="section-sm">
+      <section className="page-head">
         <div className="shell">
-          <div className="label">Coverage</div>
-          <h1 style={{ marginTop: 14 }}>Branches</h1>
-          <p className="lead" style={{ marginTop: 14, maxWidth: 640 }}>
-            Papers are indexed branch by branch. Each course keeps its own papers, note
-            sets and — where available — syllabus schemes per academic year.
+          <p className="eyebrow">Coverage</p>
+          <h1>Branches</h1>
+          <p className="lead">
+            Papers are indexed branch by branch. Each course keeps its own papers, note sets and,
+            where available, syllabus schemes per academic year. Taller spines hold more questions.
           </p>
         </div>
       </section>
 
-      <section style={{ paddingBottom: 72 }}>
+      <section style={{ paddingBottom: 'var(--space-12)' }}>
         <div className="shell">
-          <div className="panel panel-pad">
+          <Bookshelf departments={departments} />
+        </div>
+      </section>
+
+      <section style={{ paddingBottom: 'var(--space-16)' }} aria-labelledby="coverage-title">
+        <div className="shell">
+          <h2 id="coverage-title" style={{ fontSize: 30 }}>Coverage in detail</h2>
+          <div className="panel panel-pad" style={{ marginTop: 18 }}>
             <div className="table-wrap">
               <table className="table">
                 <thead>
@@ -39,7 +53,7 @@ export default function DepartmentsPage() {
                     <th className="nums">Questions</th>
                     <th className="nums">Notes</th>
                     <th>Status</th>
-                    <th />
+                    <th><span className="visually-hidden">Open</span></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -51,7 +65,7 @@ export default function DepartmentsPage() {
                           <span className="tag tag-code tag-accent">{d.code}</span>
                         </td>
                         <td>
-                          <div style={{ fontWeight: 500 }}>{d.name}</div>
+                          <div style={{ fontWeight: 600 }}>{d.name}</div>
                           <div className="xs muted">{d.full_name}</div>
                         </td>
                         <td className="num">{d.course_count}</td>
@@ -63,7 +77,7 @@ export default function DepartmentsPage() {
                         </td>
                         <td style={{ textAlign: 'right' }}>
                           {d.course_count > 0 ? (
-                            <Link href={`/departments/${d.code}`} className="small">
+                            <Link href={`/departments/${d.code}`} className="small" aria-label={`Open ${d.name}`}>
                               Open →
                             </Link>
                           ) : (
@@ -80,7 +94,7 @@ export default function DepartmentsPage() {
 
           <p className="notice" style={{ marginTop: 24 }}>
             Branches marked <strong>Planned</strong> have no papers digitised yet. Contributing a
-            scanned paper for one of them is the fastest way to open it up — see the{' '}
+            scanned paper for one of them is the fastest way to open it up. See the{' '}
             <Link href="/about#contribute">contribute</Link> section.
           </p>
         </div>
