@@ -27,7 +27,7 @@ export default function DepartmentsPage() {
           <h1>Branches</h1>
           <p className="lead">
             Papers are indexed branch by branch. Each course keeps its own papers, note sets and,
-            where available, syllabus schemes per academic year. Taller spines hold more questions.
+            where available, syllabus schemes per academic year. Taller spines hold more papers.
           </p>
         </div>
       </section>
@@ -52,6 +52,7 @@ export default function DepartmentsPage() {
                     <th className="nums">Papers</th>
                     <th className="nums">Questions</th>
                     <th className="nums">Notes</th>
+                    <th className="nums">Library</th>
                     <th>Status</th>
                     <th><span className="visually-hidden">Open</span></th>
                   </tr>
@@ -72,6 +73,13 @@ export default function DepartmentsPage() {
                         <td className="num">{d.paper_count}</td>
                         <td className="num">{d.question_count}</td>
                         <td className="num">{d.note_count}</td>
+                        <td className="num">
+                          {d.library_count > 0 ? (
+                            <Link href={`/papers?dept=${d.code}`} aria-label={`${d.library_count} past papers for ${d.name}`}>{d.library_count}</Link>
+                          ) : (
+                            0
+                          )}
+                        </td>
                         <td>
                           <span className={status.className}>{status.text}</span>
                         </td>
@@ -79,6 +87,10 @@ export default function DepartmentsPage() {
                           {d.course_count > 0 ? (
                             <Link href={`/departments/${d.code}`} className="small" aria-label={`Open ${d.name}`}>
                               Open →
+                            </Link>
+                          ) : d.library_count > 0 ? (
+                            <Link href={`/papers?dept=${d.code}`} className="small" aria-label={`Past papers for ${d.name}`}>
+                              Papers →
                             </Link>
                           ) : (
                             <span className="xs muted">—</span>

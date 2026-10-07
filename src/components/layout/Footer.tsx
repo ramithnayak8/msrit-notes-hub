@@ -5,6 +5,7 @@ const COLUMNS = [
     title: 'Archive',
     links: [
       { href: '/search', label: 'Search questions' },
+      { href: '/papers', label: 'Past papers library' },
       { href: '/departments', label: 'Branches' },
       { href: '/syllabus', label: 'Syllabus changes' },
     ],
@@ -13,6 +14,7 @@ const COLUMNS = [
     title: 'Tools',
     links: [
       { href: '/assistant', label: 'Study assistant' },
+      { href: '/shelf', label: 'My shelf' },
       { href: '/api/stats', label: 'Public API' },
     ],
   },

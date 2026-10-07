@@ -8,7 +8,7 @@ const rise = (i: number) => ({ '--i': i }) as React.CSSProperties;
  * Landing hero. Always rendered on the night palette (`on-dark`) because the
  * scene behind it is a night library, whichever theme the rest of the site uses.
  */
-export function Hero({ examples }: { examples: string[] }) {
+export function Hero({ examples, paperCount }: { examples: string[]; paperCount: number }) {
   return (
     <>
       {/* Outside the section: the hero's isolation would trap its z-index under the masthead. */}
@@ -27,9 +27,9 @@ export function Hero({ examples }: { examples: string[] }) {
               <em>The library is open.</em>
             </h1>
             <p className="lead hero-lead hero-rise" style={rise(2)}>
-              Every previous year paper, note set and syllabus scheme in one quiet place, searchable
-              by what a question is <em>about</em>. Ask in plain English and get the exact
-              questions, cited to their paper, year and question number.
+              {paperCount.toLocaleString('en-IN')} past papers, notes and syllabus schemes in one quiet
+              place. Search questions by what they are <em>about</em>, in plain English, and get the
+              exact question cited to its paper, year and number.
             </p>
             <div className="hero-search hero-rise" style={rise(3)}>
               <SearchBox large />

@@ -6,7 +6,8 @@ import type { DepartmentWithStats } from '@/lib/types';
  * a branch has; branches with no courses yet stand dimmed and are not links.
  */
 export function Bookshelf({ departments, label = 'Branches' }: { departments: DepartmentWithStats[]; label?: string }) {
-  const most = Math.max(...departments.map((d) => d.question_count), 1);
+  const material = (d: DepartmentWithStats) => d.question_count + d.library_count;
+  const most = Math.max(...departments.map(material), 1);
 
   return (
     <div className="shelf-wrap">
@@ -15,7 +16,8 @@ export function Bookshelf({ departments, label = 'Branches' }: { departments: De
           const style = {
             '--from': d.accent_from,
             '--to': d.accent_to,
-            '--h': `${Math.round(190 + (d.question_count / most) * 90)}px`,
+            '--h': `${Math.round(250 + Math.sqrt(material(d) / most) * 70)}px`,
+            '--fs': d.name.length > 16 ? '14px' : d.name.length > 11 ? '16px' : '19px',
           } as React.CSSProperties;
           const body = (
             <>
@@ -23,17 +25,17 @@ export function Bookshelf({ departments, label = 'Branches' }: { departments: De
               <span className="spine-code">{d.code}</span>
               <span className="spine-title">{d.name}</span>
               <span className="spine-band" aria-hidden />
-              <span className="spine-meta nums">{d.course_count > 0 ? `${d.question_count} Q` : 'Soon'}</span>
+              <span className="spine-meta nums">{material(d) > 0 ? `${d.paper_count + d.library_count} papers` : 'Soon'}</span>
             </>
           );
           return (
             <li key={d.code} className="shelf-slot">
-              {d.course_count > 0 ? (
+              {material(d) > 0 ? (
                 <Link
-                  href={`/departments/${d.code}`}
+                  href={d.course_count > 0 ? `/departments/${d.code}` : `/papers?dept=${d.code}`}
                   className="spine"
                   style={style}
-                  aria-label={`${d.full_name}: ${d.course_count} courses, ${d.question_count} questions, ${d.note_count} note sets`}
+                  aria-label={`${d.full_name}: ${d.paper_count + d.library_count} papers, ${d.question_count} searchable questions`}
                 >
                   {body}
                 </Link>

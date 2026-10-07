@@ -1,11 +1,15 @@
 'use client';
 
 import { Suspense, useCallback, useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { SearchBox, ExampleQueries } from '@/components/SearchBox';
 import { QuestionResult } from '@/components/QuestionResult';
 import { Icon } from '@/components/ui/Icon';
 import type { SearchResponse } from '@/lib/types';
+
+type SearchData = SearchResponse & { papers?: { code: string; title: string; papers: number }[] };
+const PAGE = 25;
 
 const EXAMPLES = [
   'binary tree questions from the last 3 years',
@@ -33,7 +37,8 @@ function ResultSkeleton() {
 function SearchResults() {
   const params = useSearchParams();
   const q = params.get('q') ?? '';
-  const [data, setData] = useState<SearchResponse | null>(null);
+  const [data, setData] = useState<SearchData | null>(null);
+  const [shown, setShown] = useState(PAGE);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -41,9 +46,10 @@ function SearchResults() {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`/api/search?q=${encodeURIComponent(query)}&limit=25`);
+      const response = await fetch(`/api/search?q=${encodeURIComponent(query)}&limit=50`);
       if (!response.ok) throw new Error(`Search failed (${response.status})`);
       setData(await response.json());
+      setShown(PAGE);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Search failed');
       setData(null);
@@ -135,17 +141,42 @@ function SearchResults() {
           {data && data.hits.length > 0 && (
             <div className={`search-layout${stale ? ' is-stale' : ''}`} aria-busy={stale || undefined}>
               <div className="divide">
-                {data.hits.map((hit, i) => (
+                {data.hits.slice(0, shown).map((hit, i) => (
                   <QuestionResult key={hit.id} hit={hit} rank={i + 1} />
                 ))}
-                {data.total > data.hits.length && (
-                  <p className="small muted" style={{ paddingTop: 22 }}>
-                    Showing the top {data.hits.length} of {data.total} matches.
-                  </p>
+                {data.hits.length > shown ? (
+                  <div style={{ paddingTop: 22 }}>
+                    <button type="button" className="btn btn-outline btn-sm" onClick={() => setShown(data.hits.length)}>
+                      Show {data.hits.length - shown} more match{data.hits.length - shown === 1 ? '' : 'es'}
+                    </button>
+                  </div>
+                ) : (
+                  data.total > data.hits.length && (
+                    <p className="small muted" style={{ paddingTop: 22 }}>
+                      Showing the top {data.hits.length} of {data.total} matches. Add a course or year to narrow it down.
+                    </p>
+                  )
                 )}
               </div>
 
               <aside className="stack gap-20 search-aside" aria-label="Result breakdown">
+                {data.papers && data.papers.length > 0 && (
+                  <div className="panel panel-pad search-papers">
+                    <div className="label">Full past papers</div>
+                    <p className="xs muted" style={{ marginTop: 6 }}>Whole papers for the courses these questions come from.</p>
+                    <div className="stack gap-6" style={{ marginTop: 12 }}>
+                      {data.papers.map((c) => (
+                        <Link key={c.code} href={`/courses/${c.code}#more-papers`} className="topic-row">
+                          <span>{c.title}</span>
+                          <span className="muted nums xs">{c.papers}</span>
+                        </Link>
+                      ))}
+                    </div>
+                    <Link href={`/papers?q=${encodeURIComponent(data.papers[0].title)}`} className="small" style={{ display: 'inline-flex', gap: 4, alignItems: 'center', marginTop: 12 }}>
+                      Open the library <Icon name="arrowRight" size={14} />
+                    </Link>
+                  </div>
+                )}
                 <div className="panel panel-pad">
                   <div className="label">By year</div>
                   <div className="stack gap-10" style={{ marginTop: 14 }}>

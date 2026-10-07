@@ -155,7 +155,7 @@
   flex: 1; min-height: 0;
   writing-mode: vertical-rl;
   transform: rotate(180deg);
-  font-family: var(--font-head); font-size: 19px; font-weight: 600; letter-spacing: 0.02em;
+  font-family: var(--font-head); font-size: var(--fs, 19px); font-weight: 600; letter-spacing: 0.02em;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .spine-meta { font-size: 10.5px; color: var(--cream-200); letter-spacing: 0.04em; }

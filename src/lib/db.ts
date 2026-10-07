@@ -38,7 +38,8 @@ export function getDepartments(): DepartmentWithStats[] {
       (SELECT COUNT(*) FROM courses c WHERE c.dept_code = d.code) AS course_count,
       (SELECT COUNT(*) FROM papers p JOIN courses c ON c.code = p.course_code WHERE c.dept_code = d.code) AS paper_count,
       (SELECT COUNT(*) FROM questions q JOIN courses c ON c.code = q.course_code WHERE c.dept_code = d.code) AS question_count,
-      (SELECT COUNT(*) FROM notes n JOIN courses c ON c.code = n.course_code WHERE c.dept_code = d.code) AS note_count
+      (SELECT COUNT(*) FROM notes n JOIN courses c ON c.code = n.course_code WHERE c.dept_code = d.code) AS note_count,
+      (SELECT COUNT(*) FROM external_papers e WHERE e.dept_code = d.code) AS library_count
     FROM departments d
     ORDER BY CASE d.status WHEN 'active' THEN 0 WHEN 'growing' THEN 1 ELSE 2 END, question_count DESC
   `);
@@ -294,4 +295,33 @@ export function getLibrarySubjects(): { subject: string; papers: number }[] {
     SELECT subject, COUNT(*) AS papers FROM external_papers
     GROUP BY lower(subject) ORDER BY papers DESC, subject LIMIT 400
   `);
+}
+
+/** Per year of study: how many papers, and the subjects with the most of them. */
+export function getLibraryByYear(): { year: number; papers: number; subjects: number; top: string[] }[] {
+  const totals = all<{ year: number; papers: number; subjects: number }>(`
+    SELECT study_year AS year, COUNT(*) AS papers, COUNT(DISTINCT lower(subject)) AS subjects
+    FROM external_papers WHERE study_year IS NOT NULL GROUP BY study_year ORDER BY study_year
+  `);
+  return totals.map((t) => ({
+    ...t,
+    top: all<{ subject: string }>(
+      `SELECT subject FROM external_papers WHERE study_year = ? AND subject NOT LIKE 'Mathematics %'
+       GROUP BY lower(subject) ORDER BY COUNT(*) DESC LIMIT 4`,
+      t.year
+    ).map((r) => r.subject),
+  }));
+}
+
+/** Library paper counts for some courses, in the order given (most relevant first). */
+export function getLibraryForCourses(codes: string[]): { code: string; title: string; papers: number }[] {
+  if (!codes.length) return [];
+  const rows = all<{ code: string; title: string; papers: number }>(
+    `SELECT c.code, c.title, COUNT(e.id) AS papers
+     FROM courses c JOIN external_papers e ON e.course_code = c.code
+     WHERE c.code IN (${codes.map(() => '?').join(', ')})
+     GROUP BY c.code`,
+    ...codes
+  );
+  return rows.sort((a, b) => codes.indexOf(a.code) - codes.indexOf(b.code));
 }

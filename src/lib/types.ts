@@ -9,6 +9,8 @@ export type Department = {
 
 export type DepartmentWithStats = Department & {
   course_count: number;
+  /** Past papers linked from other student archives. */
+  library_count: number;
   paper_count: number;
   question_count: number;
   note_count: number;

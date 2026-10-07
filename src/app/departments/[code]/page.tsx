@@ -55,9 +55,14 @@ export default async function DepartmentPage({ params }: Params) {
               <h1>{department.name}</h1>
               <p className="lead" style={{ marginTop: 8 }}>{department.full_name}</p>
             </div>
-            <Link href={`/search?q=${encodeURIComponent(department.code)}`} className="btn btn-outline btn-sm">
-              <Icon name="search" size={16} /> Search within {department.code}
-            </Link>
+            <div className="row gap-10 wrap">
+              <Link href={`/papers?dept=${department.code}`} className="btn btn-primary btn-sm">
+                <Icon name="archive" size={16} /> Past papers library
+              </Link>
+              <Link href={`/search?q=${encodeURIComponent(department.code)}`} className="btn btn-outline btn-sm">
+                <Icon name="search" size={16} /> Search within {department.code}
+              </Link>
+            </div>
           </div>
 
           <div className="panel panel-pad" style={{ marginTop: 28 }}>

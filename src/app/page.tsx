@@ -5,7 +5,7 @@ import { Bookshelf } from '@/components/browse/Bookshelf';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { Tilt } from '@/components/ui/Tilt';
 import { Counter } from '@/components/ui/Counter';
-import { getStats, getYearRange, getDepartments, diffSyllabus } from '@/lib/db';
+import { getStats, getDepartments, diffSyllabus, getLibraryStats, getLibraryByYear } from '@/lib/db';
 import { searchQuestions } from '@/lib/search';
 
 export const dynamic = 'force-dynamic';
@@ -52,36 +52,62 @@ const FEATURES: { icon: IconName; title: string; body: React.ReactNode }[] = [
 
 export default function HomePage() {
   const stats = getStats();
-  const years = getYearRange();
+  const library = getLibraryStats();
+  const byYear = getLibraryByYear();
   const departments = getDepartments();
   const demo = searchQuestions('binary tree questions from the last 3 years', 2);
   const diff = diffSyllabus('CS501');
 
   return (
     <main>
-      <Hero examples={EXAMPLES} />
+      <Hero examples={EXAMPLES} paperCount={library.papers} />
 
       <section id="archive" className="section-sm" aria-label="Archive at a glance">
         <div className="shell">
           <div className="panel panel-pad">
             <div className="stats">
-              <div className="stat">
+              <Link href="/papers" className="stat stat-link">
+                <div className="stat-value"><Counter value={library.papers} /></div>
+                <div className="stat-label">Past papers in the library</div>
+              </Link>
+              <Link href="/papers" className="stat stat-link">
+                <div className="stat-value"><Counter value={library.subjects} /></div>
+                <div className="stat-label">Subjects, first to fourth year</div>
+              </Link>
+              <Link href="/search" className="stat stat-link">
                 <div className="stat-value"><Counter value={stats.questions} /></div>
-                <div className="stat-label">Questions indexed</div>
-              </div>
-              <div className="stat">
-                <div className="stat-value"><Counter value={stats.papers} /></div>
-                <div className="stat-label">Papers across {years.min}–{years.max}</div>
-              </div>
-              <div className="stat">
-                <div className="stat-value"><Counter value={stats.courses} /></div>
-                <div className="stat-label">Courses across {stats.departments} branches</div>
-              </div>
-              <div className="stat">
-                <div className="stat-value"><Counter value={stats.notes} /></div>
-                <div className="stat-label">Note sets contributed</div>
-              </div>
+                <div className="stat-label">Questions searchable by topic</div>
+              </Link>
+              <Link href="/departments" className="stat stat-link">
+                <div className="stat-value"><Counter value={stats.departments} /></div>
+                <div className="stat-label">Branches on the shelf</div>
+              </Link>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="section-sm" aria-labelledby="years-title">
+        <div className="shell">
+          <div className="row between wrap gap-16" style={{ alignItems: 'flex-end' }}>
+            <div>
+              <p className="eyebrow">Past papers library</p>
+              <h2 id="years-title" style={{ marginTop: 12 }}>Start from your year</h2>
+            </div>
+            <Link href="/papers" className="btn btn-outline btn-sm">
+              Open the library <Icon name="arrowRight" size={16} />
+            </Link>
+          </div>
+          <div className="year-volumes" style={{ marginTop: 28 }}>
+            {byYear.map((y) => (
+              <Link key={y.year} href={`/papers?year=${y.year}`} className="year-volume" data-year={y.year}>
+                <span className="year-volume-num" aria-hidden>{['I', 'II', 'III', 'IV'][y.year - 1]}</span>
+                <span className="year-volume-title">{['First', 'Second', 'Third', 'Fourth'][y.year - 1]} year</span>
+                <span className="year-volume-count nums">{y.papers.toLocaleString('en-IN')} papers · {y.subjects} subjects</span>
+                <span className="year-volume-topics">{y.top.join(' · ')}</span>
+                <span className="year-volume-go" aria-hidden><Icon name="arrowRight" size={18} /></span>
+              </Link>
+            ))}
           </div>
         </div>
       </section>
