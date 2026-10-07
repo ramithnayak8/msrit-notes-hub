@@ -100,10 +100,12 @@ async function keywordSearch(text: string, f: SearchFilters): Promise<Ranked> {
         $search: {
           index: TEXT_INDEX,
           compound: {
-            // BM25 over three fields; a match in the topic tags counts double, course title half.
+            // BM25 over three fields; course title counts half. Topic tags get no extra boost: broad
+            // tags ("time complexity") sit on many questions, and doubling them flooded results
+            // (eval Recall@10 0.719 -> 0.748 keyword-only). The vector side already uses the tags.
             should: [
               { text: { query: text, path: 'text' } },
-              { text: { query: text, path: 'topics', score: { boost: { value: 2 } } } },
+              { text: { query: text, path: 'topics', score: { boost: { value: 1 } } } },
               { text: { query: text, path: 'courseTitle', score: { boost: { value: 0.5 } } } },
             ],
             minimumShouldMatch: 1,
