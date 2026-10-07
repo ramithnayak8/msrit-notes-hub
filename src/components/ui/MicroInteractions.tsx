@@ -25,7 +25,8 @@ export function MicroInteractions() {
 
   // Smooth scrolling (full effects only; it is the most noticeable of the three).
   useEffect(() => {
-    if (!ready || effects !== 'full' || !finePointer()) return;
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!ready || effects !== 'full' || reduced || !finePointer()) return;
     let cancelled = false;
     import('lenis').then(({ default: Lenis }) => {
       if (cancelled) return;

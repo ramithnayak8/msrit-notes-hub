@@ -11,5 +11,6 @@ data/*.db-wal
 .env
 .env.local
 dev.log
+prod.log
 next-env.d.ts
 *.tsbuildinfo

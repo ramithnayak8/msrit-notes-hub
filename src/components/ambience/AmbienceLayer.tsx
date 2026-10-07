@@ -1,5 +1,6 @@
 'use client';
 
+import { usePathname } from 'next/navigation';
 import { useEffect, useRef } from 'react';
 import { useStudyRoom } from '@/components/study/StudyRoomProvider';
 import { sceneById } from './scenes';
@@ -12,6 +13,20 @@ import { sceneById } from './scenes';
 export function AmbienceLayer() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { prefs, effects, ready } = useStudyRoom();
+  const pathname = usePathname();
+  // True while the home hero (opaque, with its own WebGL scene) fills most of the screen.
+  const covered = useRef(false);
+
+  useEffect(() => {
+    const hero = document.querySelector('.hero');
+    covered.current = false;
+    if (!hero) return;
+    const observer = new IntersectionObserver(([entry]) => (covered.current = entry.intersectionRatio > 0.75), {
+      threshold: [0, 0.75, 1],
+    });
+    observer.observe(hero);
+    return () => observer.disconnect();
+  }, [pathname]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -31,11 +46,14 @@ export function AmbienceLayer() {
         scale: effects === 'full' ? 1 : 0.5,
       });
 
+      // Lite renders at ~30 fps; nothing is drawn while the hero hides the layer.
+      const minStep = effects === 'full' ? 0 : 30;
       let last = performance.now();
       const tick = (now: number) => {
-        field.frame(now - last);
-        last = now;
         frame = requestAnimationFrame(tick);
+        if (now - last < minStep) return;
+        if (!covered.current) field.frame(now - last);
+        last = now;
       };
       const start = () => {
         cancelAnimationFrame(frame);
