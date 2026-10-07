@@ -1,5 +1,5 @@
 import { DatabaseSync } from 'node:sqlite';
-import { mkdirSync, rmSync, existsSync } from 'node:fs';
+import { mkdirSync, rmSync, existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { departments, courses, questions, notes, syllabusVersions } from './seed-data.mjs';
@@ -54,6 +54,26 @@ db.exec(`
     topics      TEXT NOT NULL,
     level       TEXT NOT NULL
   );
+
+  -- Past papers shared by other student sites: links to the original files, never copies.
+  CREATE TABLE external_papers (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    source      TEXT NOT NULL,
+    branch      TEXT,
+    dept_code   TEXT,
+    semester    INTEGER,
+    study_year  INTEGER,
+    subject     TEXT NOT NULL,
+    course_code TEXT REFERENCES courses(code),
+    exam_type   TEXT NOT NULL,
+    year        INTEGER,
+    month       TEXT,
+    title       TEXT NOT NULL,
+    kind        TEXT NOT NULL,
+    url         TEXT NOT NULL
+  );
+  CREATE INDEX external_papers_course ON external_papers(course_code);
+  CREATE INDEX external_papers_subject ON external_papers(subject);
 
   CREATE TABLE notes (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -152,11 +172,28 @@ for (const v of syllabusVersions) {
   }
 }
 
+// Optional: the catalogue built by scripts/crawl-sources.mjs + classify-papers.mjs.
+const externalPath = join(root, 'data', 'sources', 'external-papers.json');
+if (existsSync(externalPath)) {
+  const { papers } = JSON.parse(readFileSync(externalPath, 'utf8'));
+  const insertExternal = db.prepare(
+    `INSERT INTO external_papers (source, branch, dept_code, semester, study_year, subject, course_code, exam_type, year, month, title, kind, url)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  );
+  db.exec('BEGIN');
+  for (const x of papers) {
+    insertExternal.run(x.source, x.branch ?? null, x.dept ?? null, x.semester ?? null, x.studyYear ?? null, x.subject,
+      x.courseCode ?? null, x.examType, x.year ?? null, x.month ?? null, x.title, x.kind, x.url);
+  }
+  db.exec('COMMIT');
+}
+
 const count = (table) => db.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get().n;
 console.log(`Seeded ${dbPath}`);
 console.log(
   `  departments=${count('departments')} courses=${count('courses')} papers=${count('papers')} ` +
   `questions=${count('questions')} notes=${count('notes')} ` +
-  `syllabus_versions=${count('syllabus_versions')} syllabus_topics=${count('syllabus_topics')}`
+  `syllabus_versions=${count('syllabus_versions')} syllabus_topics=${count('syllabus_topics')} ` +
+  `external_papers=${count('external_papers')}`
 );
 db.close();

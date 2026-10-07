@@ -51,6 +51,7 @@
 .nav-link {
   position: relative;
   font-size: 14px; font-weight: 500;
+  white-space: nowrap;
   color: var(--ink-soft);
   padding: 8px 12px;
   border-radius: var(--radius-sm);

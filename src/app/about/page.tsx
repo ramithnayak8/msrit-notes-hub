@@ -203,6 +203,14 @@ export default function AboutPage() {
           <div id="contribute">
             <h2>Contributing papers</h2>
             <p className="soft" style={{ marginTop: 12 }}>
+              The <Link href="/papers">past papers library</Link> lists papers that students already share on{' '}
+              <a href="https://ritnotebook.netlify.app" target="_blank" rel="noopener noreferrer">RIT Notebook</a> and{' '}
+              <a href="https://riserit.vercel.app/resources" target="_blank" rel="noopener noreferrer">RIT ISE</a>. Upload a paper
+              to either and it appears here when the catalogue is next refreshed (<code className="mono">npm run crawl</code>).
+              Every entry links to the original file; nothing is copied. If you shared a file and want it unlisted, open an
+              issue on the repository and it will be excluded.
+            </p>
+            <p className="soft" style={{ marginTop: 12 }}>
               Once ingestion is built, three things will help most, in order:
             </p>
             <div className="panel" style={{ marginTop: 18 }}>

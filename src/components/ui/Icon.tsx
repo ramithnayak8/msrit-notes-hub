@@ -32,6 +32,9 @@ const PATHS = {
   check: 'm5 12 5 5 9-10',
   info: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Zm0-5v-5m0-3h.01',
   home: 'M3 11 12 3l9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-9Z',
+  external: 'M14 4h6v6m0-6-9 9m7 1v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5',
+  image: 'M4 5h16v14H4V5Zm0 11 5-5 4 4 3-3 4 4M15 9h.01',
+  archive: 'M3 4h18v4H3V4Zm2 4v12h14V8M10 12h4',
 } as const;
 
 export type IconName = keyof typeof PATHS;

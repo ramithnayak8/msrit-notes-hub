@@ -13,6 +13,7 @@ import { useStudyRoom } from './StudyRoomProvider';
 type Catalog = {
   departments: { code: string; name: string; fullName: string; courses: number }[];
   courses: { code: string; title: string; dept: string; semester: number }[];
+  subjects?: { subject: string; papers: number }[];
 };
 
 type Item = {
@@ -106,6 +107,7 @@ export function CommandPalette() {
     () => [
       { id: 'p-search', group: 'Go to', label: 'Search questions', icon: 'search', run: () => go('/search') },
       { id: 'p-branches', group: 'Go to', label: 'Browse branches', icon: 'library', run: () => go('/departments') },
+      { id: 'p-papers', group: 'Go to', label: 'Past papers library', icon: 'archive', run: () => go('/papers') },
       { id: 'p-syllabus', group: 'Go to', label: 'Syllabus changes', icon: 'diff', run: () => go('/syllabus') },
       { id: 'p-assistant', group: 'Go to', label: 'Study assistant', icon: 'message', run: () => go('/assistant') },
       { id: 'p-shelf', group: 'Go to', label: 'My shelf: saved questions and streak', icon: 'bookmark', run: () => go('/shelf') },
@@ -161,10 +163,11 @@ export function CommandPalette() {
     const scoredCourses = score(catalog?.courses ?? [], (c) => [c.code, c.title]);
     const scoredBranches = score((catalog?.departments ?? []).filter((d) => d.courses > 0), (d) => [d.code, d.name, d.fullName]);
     const scoredCommands = score(commands, (c) => [c.label]);
+    const scoredSubjects = score(catalog?.subjects ?? [], (s) => [s.subject]);
 
     // Once anything contains the query as written, scattered letter matches are noise.
     const CONTIGUOUS = 500;
-    const best = Math.max(...[scoredCourses, scoredBranches, scoredCommands].map((l) => l[0]?.score ?? 0));
+    const best = Math.max(...[scoredCourses, scoredBranches, scoredCommands, scoredSubjects].map((l) => l[0]?.score ?? 0));
     const rank = <T,>(list: { x: T; score: number }[], limit: number) =>
       list.filter((r) => best < CONTIGUOUS || r.score >= CONTIGUOUS).slice(0, limit).map((r) => r.x);
 
@@ -184,8 +187,17 @@ export function CommandPalette() {
       icon: 'library',
       run: () => go(`/departments/${d.code}`),
     }));
+    const subjects = rank(scoredSubjects, 3).map<Item>((s) => ({
+      id: `sp-${s.subject}`,
+      group: 'Past papers',
+      label: s.subject,
+      hint: `${s.papers} paper${s.papers === 1 ? '' : 's'}`,
+      icon: 'archive',
+      run: () => go(`/papers?q=${encodeURIComponent(s.subject)}`),
+    }));
     const search: Item[] = [
       { id: 's-search', group: 'Search', label: `Search all questions for “${q}”`, icon: 'search', run: () => go(`/search?q=${encodeURIComponent(q)}`) },
+      { id: 's-papers', group: 'Search', label: `Find past papers for “${q}”`, icon: 'archive', run: () => go(`/papers?q=${encodeURIComponent(q)}`) },
       { id: 's-ask', group: 'Search', label: `Ask the assistant “${q}”`, icon: 'message', run: () => go(`/assistant?q=${encodeURIComponent(q)}`) },
     ];
     const questions = hits.map<Item>((h) => ({
@@ -201,8 +213,8 @@ export function CommandPalette() {
     const commandsFirst = (scoredCommands[0]?.score ?? 0) > Math.max(scoredCourses[0]?.score ?? 0, scoredBranches[0]?.score ?? 0);
 
     return commandsFirst
-      ? [...pages, ...courses, ...branches, ...search, ...questions]
-      : [...courses, ...branches, ...search, ...questions, ...pages];
+      ? [...pages, ...courses, ...branches, ...subjects, ...search, ...questions]
+      : [...courses, ...branches, ...subjects, ...search, ...questions, ...pages];
   }, [query, catalog, hits, commands, go]);
 
   useEffect(() => setActive(0), [query]);

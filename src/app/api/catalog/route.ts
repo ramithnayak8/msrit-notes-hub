@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
-import { getAllCourses, getDepartments } from '@/lib/db';
+import { getAllCourses, getDepartments, getLibrarySubjects } from '@/lib/db';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-/** Branches and courses in one small payload, for client-side fuzzy navigation. */
+/** Branches, courses and past-paper subjects in one small payload, for client-side fuzzy navigation. */
 export async function GET() {
   const departments = getDepartments().map((d) => ({
     code: d.code,
@@ -18,5 +18,6 @@ export async function GET() {
     dept: c.dept_code,
     semester: c.semester,
   }));
-  return NextResponse.json({ departments, courses });
+  const subjects = getLibrarySubjects();
+  return NextResponse.json({ departments, courses, subjects });
 }

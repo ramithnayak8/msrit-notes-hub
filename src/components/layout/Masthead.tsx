@@ -10,8 +10,9 @@ import { useFocus } from '@/components/study/FocusProvider';
 export const NAV_LINKS = [
   { href: '/search', label: 'Search' },
   { href: '/departments', label: 'Branches' },
-  { href: '/syllabus', label: 'Syllabus changes' },
-  { href: '/assistant', label: 'Study assistant' },
+  { href: '/papers', label: 'Past papers' },
+  { href: '/syllabus', label: 'Syllabus' },
+  { href: '/assistant', label: 'Assistant' },
 ];
 
 export function Masthead() {

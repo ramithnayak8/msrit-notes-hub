@@ -14,3 +14,6 @@ dev.log
 prod.log
 next-env.d.ts
 *.tsbuildinfo
+
+# raw Drive listing from `npm run crawl` (the classified catalogue is committed)
+data/sources/drive-files.json

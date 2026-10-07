@@ -129,3 +129,21 @@ export type SearchResponse = {
   topicSummary: { topic: string; count: number }[];
   yearSummary: { year: number; count: number }[];
 };
+
+/** A past paper hosted by another student site; we store the link, not the file. */
+export type ExternalPaper = {
+  id: number;
+  source: string;
+  branch: string | null;
+  dept_code: string | null;
+  semester: number | null;
+  study_year: number | null;
+  subject: string;
+  course_code: string | null;
+  exam_type: string;
+  year: number | null;
+  month: string | null;
+  title: string;
+  kind: 'pdf' | 'image' | 'doc' | 'file';
+  url: string;
+};

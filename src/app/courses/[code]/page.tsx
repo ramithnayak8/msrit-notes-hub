@@ -2,10 +2,12 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Icon } from '@/components/ui/Icon';
+import { PaperRow } from '@/components/browse/PaperRow';
 import { BookmarkButton, RecordVisit, SaveCourseButton } from '@/components/study/ShelfButtons';
 import {
   getCourse,
   getDepartment,
+  getExternalPapersByCourse,
   getNotesByCourse,
   getPapersByCourse,
   getQuestionsByCourse,
@@ -36,6 +38,7 @@ export default async function CoursePage({ params }: Params) {
   const questions = getQuestionsByCourse(course.code);
   const notes = getNotesByCourse(course.code);
   const schemes = getSyllabusVersions(course.code);
+  const external = getExternalPapersByCourse(course.code);
 
   const byPaper = new Map<number, typeof questions>();
   for (const q of questions) {
@@ -94,6 +97,7 @@ export default async function CoursePage({ params }: Params) {
         <nav className="section-nav" aria-label="On this page">
           <a href="#papers" className="example">Papers · {papers.length}</a>
           <a href="#topics" className="example">Most examined topics</a>
+          {external.length > 0 && <a href="#more-papers" className="example">More papers · {external.length}</a>}
           <a href="#notes" className="example">Notes · {notes.length}</a>
           {schemes.length >= 2 && (
             <Link href={`/syllabus?course=${course.code}`} className="example">Syllabus · {schemes.length} schemes</Link>
@@ -159,6 +163,28 @@ export default async function CoursePage({ params }: Params) {
                 <p className="empty-title">No papers on this shelf yet</p>
                 <p className="small" style={{ marginTop: 8 }}>No papers have been indexed for this course.</p>
               </div>
+            )}
+
+            {external.length > 0 && (
+              <section id="more-papers" aria-labelledby="more-papers-title" style={{ scrollMarginTop: 'calc(var(--masthead-h) + 70px)' }}>
+                <div className="row between wrap gap-12" style={{ alignItems: 'baseline' }}>
+                  <h2 id="more-papers-title" style={{ fontSize: 26 }}>More past papers</h2>
+                  <Link href={`/papers?q=${encodeURIComponent(course.title)}`} className="small" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}>
+                    Open in the library <Icon name="arrowRight" size={14} />
+                  </Link>
+                </div>
+                <p className="small muted" style={{ marginTop: 6 }}>
+                  {external.length} full papers shared by students on other archives. These open the original file on
+                  Google Drive; their questions are not in search yet.
+                </p>
+                <div className="panel panel-pad" style={{ marginTop: 12, paddingTop: 6, paddingBottom: 6 }}>
+                  <ul className="paper-list">
+                    {external.map((paper) => (
+                      <PaperRow key={paper.id} paper={paper} />
+                    ))}
+                  </ul>
+                </div>
+              </section>
             )}
           </div>
 
