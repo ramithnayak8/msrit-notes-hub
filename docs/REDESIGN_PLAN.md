@@ -164,3 +164,49 @@ reuses the existing `getDepartments()` and `getAllCourses()` queries. Nothing ex
   `content-visibility: auto`. Both cut the cost of the web-font swap relayout, which was the
   main source of blocking time.
 - Lighthouse mobile, home: Performance 88 to 91, Accessibility 100, Best Practices 100, SEO 100.
+
+### Phase 4: navigation and browsing
+- Branches render as book spines on a shelf (spine height encodes how much material a branch
+  has); courses are tilting book covers that swing open before navigating.
+- Course pages get a sticky "on this page" section nav.
+- Command palette on Ctrl/Cmd+K or `/`: fuzzy jump to any course, branch, page or setting,
+  plus live question matches from the existing search API. Backed by the read-only
+  `GET /api/catalog`.
+- Custom 404 and error pages, route loading skeletons, and search keeps previous results
+  visible behind a skeleton instead of blanking.
+
+### Phase 5: ambience, Focus Mode, My Shelf
+- Six procedural scenes (night library, rainy window, fireside, observatory, first snow,
+  night garden). Each is a CSS glow (paints with the HTML) plus a 2D canvas particle field
+  that loads after hydration, pauses in hidden tabs and is skipped at "Still" effects.
+- Matching Web Audio soundscapes generated live (filtered noise beds, crackles, chimes,
+  wind, crickets). Sound is never on by default and never persisted, because browsers only
+  allow audio after a click.
+- Focus Mode: a Pomodoro timer (4 focus blocks, short breaks, then a long break) with
+  editable lengths, a chime, a floating timer pill on every page, a countdown in the tab
+  title, and dimmed page chrome while a focus block runs. Survives a reload.
+- My Shelf (`/shelf`): bookmarked questions (from search and course pages), saved courses,
+  recently opened courses, a study streak and a 12-week activity grid. Everything is in
+  localStorage and syncs across tabs. The page is `noindex`.
+
+### Phase 6: micro-interactions
+- Page transitions in CSS, restarted on every pathname change (the root template only
+  remounts when the top-level segment changes). The first page of a visit skips it.
+- Cursor halo and magnetic primary buttons on fine pointers; Lenis smooth scrolling at full
+  effects, paused while any modal is open, with native scrolling kept inside scrollable panels.
+- Archive stats count up when they scroll into view; the real numbers are server-rendered.
+
+### Phase 7: performance, accessibility, responsive
+- The particle layer stops drawing while the home hero (opaque, with its own WebGL scene)
+  covers the screen; the lite profile renders at about 30 fps.
+- Lenis never starts under `prefers-reduced-motion`, even if effects are forced to full.
+- Verified: no horizontal scroll at 390 px, keyboard-only use (skip link, palette, dialogs
+  return focus, bookmarks), reduced motion resolves to "Still" with no canvas or smooth scroll.
+
+### Phase 8: QA (production build, `next start`)
+- First Load JS: shared 103 kB (unchanged); routes 103 to 115 kB. Everything added in
+  phases 5 and 6 costs at most 8 kB on any route; particles and Lenis are lazy chunks.
+- Lighthouse mobile: home 90 / 100 / 100 / 100, course page 91 / 100 / 100 / 100,
+  shelf 96 / 100 / 100 (SEO 60 is the intended `noindex`).
+- Every route returns 200 (unknown routes 404). Scripted browser runs on desktop and mobile
+  produced no console errors or hydration warnings.
