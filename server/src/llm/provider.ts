@@ -1,3 +1,7 @@
+import { execFile } from 'node:child_process';
+import { existsSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { GoogleGenAI } from '@google/genai';
 import Groq from 'groq-sdk';
 import { z } from 'zod';
@@ -62,7 +66,57 @@ class GroqProvider implements Provider {
   }
 }
 
+/**
+ * LOCAL DEVELOPMENT ONLY. Runs the Claude Code CLI in headless mode
+ * (`claude -p`) on the developer's own logged-in account, so the model runs
+ * on that person's Claude plan instead of an API key. It only works on a
+ * machine where `claude` is installed and logged in, so it is off unless
+ * USE_CLAUDE_CODE=true, and a deployed server uses an API provider instead.
+ */
+class ClaudeCodeProvider implements Provider {
+  name = 'claude-code';
+
+  async generateJson<T>(req: JsonRequest<T>): Promise<T> {
+    const args = [
+      '-p',
+      '--output-format', 'json',
+      // Structured output: Claude Code validates the reply against this schema.
+      '--json-schema', JSON.stringify(z.toJSONSchema(req.schema, { target: 'draft-7' })),
+      // A plain text-in, JSON-out call: no tools, no MCP servers, no project settings or memory.
+      '--tools', '',
+      '--strict-mcp-config',
+      '--setting-sources', '',
+      '--no-session-persistence',
+      '--model', config.CLAUDE_CODE_MODEL,
+      '--system-prompt', req.system,
+    ];
+    // Without an API key in its environment, the CLI uses the saved login.
+    const env = { ...process.env };
+    delete env.ANTHROPIC_API_KEY;
+    const stdout = await new Promise<string>((resolve, reject) => {
+      const child = execFile(claudeBinary(), args, { cwd: tmpdir(), env, timeout: 240_000, maxBuffer: 16 * 1024 * 1024, windowsHide: true }, (err, out, errOut) =>
+        err ? reject(new Error(`claude -p failed: ${err.message} ${String(errOut).slice(0, 300)}`)) : resolve(out),
+      );
+      child.stdin?.end(req.prompt);
+    });
+    const out = JSON.parse(stdout) as { is_error?: boolean; subtype?: string; result?: string; structured_output?: unknown };
+    if (out.is_error || out.structured_output === undefined) throw new Error(`claude -p returned ${out.subtype ?? 'an error'}: ${String(out.result).slice(0, 300)}`);
+    return req.schema.parse(out.structured_output);
+  }
+}
+
+/** The CLI's native binary (the npm `claude` command is a .cmd shim on Windows, which execFile can't run). */
+function claudeBinary() {
+  if (config.CLAUDE_CODE_BIN) return config.CLAUDE_CODE_BIN;
+  if (process.platform === 'win32' && process.env.APPDATA) {
+    const exe = join(process.env.APPDATA, 'npm', 'node_modules', '@anthropic-ai', 'claude-code', 'bin', 'claude.exe');
+    if (existsSync(exe)) return exe;
+  }
+  return 'claude';
+}
+
 const providers: Provider[] = [
+  ...(config.USE_CLAUDE_CODE ? [new ClaudeCodeProvider()] : []),
   ...(config.GEMINI_API_KEY ? [new GeminiProvider()] : []),
   ...(config.GROQ_API_KEY ? [new GroqProvider()] : []),
 ];

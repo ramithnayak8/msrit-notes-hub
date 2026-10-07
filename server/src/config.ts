@@ -23,6 +23,10 @@ const schema = z.object({
   GEMINI_MODEL: z.string().default('gemini-flash-latest'),
   GROQ_API_KEY: z.string().optional(),
   GROQ_MODEL: z.string().default('llama-3.3-70b-versatile'),
+  // Local development only: use the Claude Code CLI on your own logged-in account (see llm/provider.ts).
+  USE_CLAUDE_CODE: bool.default(false),
+  CLAUDE_CODE_MODEL: z.string().default('sonnet'),
+  CLAUDE_CODE_BIN: z.string().optional(),
   RUN_WORKER: bool.default(true),
 });
 
