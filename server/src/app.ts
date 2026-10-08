@@ -30,6 +30,25 @@ export function createApp() {
   app.use(cookieParser());
   app.use(pinoHttp({ logger, autoLogging: { ignore: (req) => req.url === '/api/health' }, customLogLevel: (_req, res, err) => (err || res.statusCode >= 500 ? 'error' : res.statusCode >= 400 ? 'warn' : 'debug') }));
 
+  // The API has no pages; the root lists what it offers, for anyone opening it in a browser.
+  app.get(['/', '/api'], (_req, res) => {
+    res.json({
+      name: 'ConceptQuery API',
+      ui: config.CLIENT_ORIGIN,
+      try: ['/api/search?q=agile vs waterfall', '/api/search?q=DAA greedy algorithms 2023', '/api/courses?semester=5', '/api/analytics/topics', '/api/analytics/recurring', '/api/analytics/stats'],
+      endpoints: {
+        auth: 'POST /api/auth/register | /login | /refresh | /logout, GET /api/auth/me',
+        search: 'GET /api/search?q=&mode=hybrid|vector|keyword',
+        documents: 'GET/POST /api/documents, GET /api/documents/:id, /:id/file, /:id/questions',
+        courses: 'GET /api/courses?semester=5',
+        topics: 'GET /api/topics',
+        analytics: 'GET /api/analytics/topics | /distribution?by=year | /recurring | /stats',
+        moderation: 'GET /api/review (moderator)',
+        health: 'GET /api/health',
+      },
+    });
+  });
+
   app.get('/api/health', (_req, res) => {
     res.json({
       ok: mongoose.connection.readyState === 1,
