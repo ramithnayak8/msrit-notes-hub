@@ -159,16 +159,10 @@ mark { background: var(--mark); color: inherit; padding: 0 2px; border-radius: 3
   max-width: 72ch;
 }
 
-/* Reduced motion: from the OS setting, or from "Effects: off" in the study room panel.
+/* Reduced motion. With Effects on "auto", the OS reduce-motion setting resolves to
+   data-effects="off" (see BOOT_SCRIPT in lib/client/prefs.ts), so this one rule covers
+   both; an explicit "Full" or "Lite" chosen in the study room panel overrides the OS.
    Motion is removed; content and state changes stay. */
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
-  }
-}
 [data-effects='off'] *, [data-effects='off'] *::before, [data-effects='off'] *::after {
   animation-duration: 0.01ms !important;
   animation-iteration-count: 1 !important;
