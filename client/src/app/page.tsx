@@ -5,17 +5,19 @@ import { Bookshelf } from '@/components/browse/Bookshelf';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { Tilt } from '@/components/ui/Tilt';
 import { Counter } from '@/components/ui/Counter';
-import { getStats, getYearRange, getDepartments, diffSyllabus } from '@/lib/db';
-import { searchQuestions } from '@/lib/search';
+import { apiGet, type SchemeCourse, type SearchResponse, type Stats } from '@/lib/api';
+import { getShelfBranches } from '@/lib/shelf-data';
 
 export const dynamic = 'force-dynamic';
 
 const EXAMPLES = [
-  'binary tree questions from the last 3 years',
-  'deadlock questions from CS501',
-  'normalization worth 10 marks',
-  'graph shortest path 2023',
+  'shortest path from a single source',
+  'ML confusion matrix',
+  'agile vs waterfall',
+  'DAA greedy algorithms 2023',
 ];
+
+const DEMO_QUERY = 'connect all vertices with the least total edge cost';
 
 const FEATURES: { icon: IconName; title: string; body: React.ReactNode }[] = [
   {
@@ -23,8 +25,8 @@ const FEATURES: { icon: IconName; title: string; body: React.ReactNode }[] = [
     title: 'Search by what a question is about',
     body: (
       <>
-        Queries are expanded with term associations mined from the papers themselves, so
-        &ldquo;multithreading&rdquo; still finds a question that only says &ldquo;thread&rdquo;.
+        Every question is embedded and tagged with the concepts it tests, and keyword and meaning searches
+        are merged, so &ldquo;least total edge cost&rdquo; finds Prim&rsquo;s and Kruskal&rsquo;s questions.
       </>
     ),
   },
@@ -33,29 +35,39 @@ const FEATURES: { icon: IconName; title: string; body: React.ReactNode }[] = [
     title: 'Ask in plain English',
     body: (
       <>
-        &ldquo;Last 3 years&rdquo;, &ldquo;10 marks&rdquo; and &ldquo;from CS501&rdquo; become real
-        filters, and every search shows you exactly how it read your request.
+        &ldquo;Last 3 years&rdquo;, &ldquo;10 marks&rdquo; and &ldquo;ML&rdquo; become real filters, and
+        every search shows exactly how it read your request. No language model runs at search time.
       </>
     ),
   },
   {
     icon: 'diff',
-    title: 'Know what changed in the syllabus',
+    title: 'Survives syllabus revisions',
     body: (
       <>
-        Each course keeps its scheme per academic year, so you can see which topics were added,
-        dropped or reworded before you revise the wrong unit.
+        Course codes get reused and subjects renamed between schemes. Questions are filed by topic, and
+        each current course is linked to past papers on the same subject, whatever their code.
       </>
     ),
   },
 ];
 
-export default function HomePage() {
-  const stats = getStats();
-  const years = getYearRange();
-  const departments = getDepartments();
-  const demo = searchQuestions('binary tree questions from the last 3 years', 2);
-  const diff = diffSyllabus('CS501');
+export default async function HomePage() {
+  const [stats, branches, demo, scheme] = await Promise.all([
+    apiGet<Stats>('/analytics/stats'),
+    getShelfBranches(),
+    apiGet<SearchResponse>(`/search?q=${encodeURIComponent(DEMO_QUERY)}&limit=3`),
+    apiGet<{ items: SchemeCourse[] }>('/courses?semester=5'),
+  ]);
+  const years = stats.yearRange ?? { min: 0, max: 0 };
+  const topics = Object.values(stats.topics).reduce((a, b) => a + b, 0);
+  // The clearest example of why codes can't be trusted: a current course whose papers were set under another code.
+  // Best of all: one whose old code now means a different subject (ML's papers sit under CI52, which is now Foundations of AI).
+  const reused = scheme.items.find((c) => c.codeReusedBy.length > 0) ?? null;
+  const moved =
+    scheme.items.find((c) => reused && c.pastPapers.some((p) => p.code === reused.code)) ??
+    scheme.items.find((c) => c.pastPapers.some((p) => p.code !== c.code)) ??
+    null;
 
   return (
     <main>
@@ -70,16 +82,16 @@ export default function HomePage() {
                 <div className="stat-label">Questions indexed</div>
               </div>
               <div className="stat">
-                <div className="stat-value"><Counter value={stats.papers} /></div>
+                <div className="stat-value"><Counter value={stats.documents} /></div>
                 <div className="stat-label">Papers across {years.min}–{years.max}</div>
               </div>
               <div className="stat">
                 <div className="stat-value"><Counter value={stats.courses} /></div>
-                <div className="stat-label">Courses across {stats.departments} branches</div>
+                <div className="stat-label">Courses across {branches.length} shelves</div>
               </div>
               <div className="stat">
-                <div className="stat-value"><Counter value={stats.notes} /></div>
-                <div className="stat-label">Note sets contributed</div>
+                <div className="stat-value"><Counter value={topics} /></div>
+                <div className="stat-label">Concept topics tagged</div>
               </div>
             </div>
           </div>
@@ -98,7 +110,7 @@ export default function HomePage() {
             </Link>
           </div>
           <div style={{ marginTop: 28 }}>
-            <Bookshelf departments={departments} />
+            <Bookshelf branches={branches} />
           </div>
         </div>
       </section>
@@ -139,6 +151,9 @@ export default function HomePage() {
             <div style={{ maxWidth: 560 }}>
               <p className="eyebrow">Worked example</p>
               <h2 id="example-title" style={{ marginTop: 12 }}>A real query, against the live index</h2>
+              <p className="lead" style={{ marginTop: 12 }}>
+                None of these questions say &ldquo;least total edge cost&rdquo;. They are found by meaning.
+              </p>
             </div>
             <Link href={`/search?q=${encodeURIComponent(demo.query.raw)}`} className="btn btn-outline btn-sm">
               Open this search <Icon name="arrowRight" size={16} />
@@ -153,9 +168,10 @@ export default function HomePage() {
 
             <div className="interpret" style={{ marginTop: 16 }}>
               <span className="label" style={{ color: 'var(--accent)' }}>Interpreted as</span>
-              {demo.query.explanation.map((part) => (
+              {demo.query.understood.map((part) => (
                 <span key={part} className="tag tag-accent">{part}</span>
               ))}
+              <span className="tag">topic: {demo.query.text}</span>
               <span className="muted xs nums">
                 {demo.total} matches · {demo.tookMs} ms
               </span>
@@ -163,27 +179,27 @@ export default function HomePage() {
 
             <div className="divide" style={{ marginTop: 8 }}>
               {demo.hits.map((hit, i) => (
-                <QuestionResult key={hit.id} hit={hit} rank={i + 1} />
+                <QuestionResult key={hit.id} hit={hit} rank={i + 1} terms={demo.query.text.split(' ')} />
               ))}
             </div>
           </div>
         </div>
       </section>
 
-      {diff && (
-        <section className="section rule-top defer-render" aria-labelledby="syllabus-title">
+      {moved && (
+        <section className="section rule-top defer-render" aria-labelledby="scheme-title">
           <div className="shell">
             <div className="grid-2" style={{ gap: 48, alignItems: 'center' }}>
               <div>
-                <p className="eyebrow">Syllabus tracking</p>
-                <h2 id="syllabus-title" style={{ marginTop: 12 }}>Know what changed before you revise</h2>
+                <p className="eyebrow">Syllabus revisions</p>
+                <h2 id="scheme-title" style={{ marginTop: 12 }}>Course codes change. Topics don&rsquo;t.</h2>
                 <p className="lead" style={{ marginTop: 14 }}>
-                  The archive stores each course scheme by academic year. Comparing two years is a
-                  structural diff, not guesswork, so additions and removals are exact.
+                  Schemes rename subjects and reuse codes, so a search keyed on course codes breaks every few years.
+                  Each current course is linked to past papers by subject, and questions are found by topic.
                 </p>
                 <div style={{ marginTop: 22 }}>
-                  <Link href="/syllabus" className="btn btn-outline btn-sm">
-                    View all tracked changes <Icon name="arrowRight" size={16} />
+                  <Link href="/courses" className="btn btn-outline btn-sm">
+                    See the current scheme <Icon name="arrowRight" size={16} />
                   </Link>
                 </div>
               </div>
@@ -191,32 +207,34 @@ export default function HomePage() {
               <div className="panel panel-pad">
                 <div className="row between wrap gap-12">
                   <div>
-                    <span className="tag tag-code tag-accent">{diff.courseCode}</span>
-                    <p className="display" style={{ marginTop: 8, fontSize: 24 }}>{diff.courseTitle}</p>
+                    <span className="tag tag-code tag-accent">{moved.code}</span>
+                    <p className="display" style={{ marginTop: 8, fontSize: 24 }}>{moved.title}</p>
                   </div>
-                  <span className="tag">
-                    {diff.from.academic_year} → {diff.to.academic_year}
-                  </span>
+                  <span className="tag">{moved.scheme} scheme</span>
                 </div>
 
                 <div className="stack gap-6" style={{ marginTop: 18 }}>
-                  {diff.added.slice(0, 3).map((a) => (
-                    <div key={`a-${a.unit}-${a.topic}`} className="diff-row diff-add">
-                      <span className="diff-sign">+</span>
-                      <span>Unit {a.unit}: {a.topic}</span>
+                  {moved.pastPapers.map((p) => (
+                    <div key={`${p.code}-${p.title}`} className="diff-row diff-add">
+                      <span className="diff-sign">←</span>
+                      <span>
+                        {p.code}: {p.title} · {p.papers} paper{p.papers === 1 ? '' : 's'}
+                        {p.years.length ? ` (${p.years.join(', ')})` : ''}
+                      </span>
                     </div>
                   ))}
-                  {diff.removed.slice(0, 2).map((r) => (
-                    <div key={`r-${r.unit}-${r.topic}`} className="diff-row diff-remove">
-                      <span className="diff-sign">−</span>
-                      <span>Unit {r.unit}: {r.topic}</span>
+                  {reused && (
+                    <div className="diff-row diff-remove">
+                      <span className="diff-sign">!</span>
+                      <span>
+                        {reused.code} is now {reused.title}; older {reused.code} papers are{' '}
+                        {reused.codeReusedBy.map((r) => r.title).join(', ')}
+                      </span>
                     </div>
-                  ))}
+                  )}
                 </div>
 
-                <p className="xs muted" style={{ marginTop: 14 }}>
-                  {diff.added.length} added · {diff.removed.length} removed · {diff.unchangedCount} unchanged
-                </p>
+                <p className="xs muted" style={{ marginTop: 14 }}>Linked by course-title similarity, not by code.</p>
               </div>
             </div>
           </div>
@@ -228,9 +246,8 @@ export default function HomePage() {
           <p className="eyebrow" style={{ justifyContent: 'center' }}>Study assistant</p>
           <h2 id="assistant-title" style={{ marginTop: 12 }}>Ask the archive what to revise</h2>
           <p className="lead" style={{ marginTop: 14 }}>
-            The assistant answers only from retrieved questions and syllabus schemes, and cites the
-            papers it used. Good for &ldquo;what should I revise first&rdquo; and &ldquo;what changed
-            this year&rdquo;.
+            It ranks topics by how many papers examined them and cites the papers it used, with no
+            language model involved. Good for &ldquo;what should I revise first for ML&rdquo;.
           </p>
           <div className="row gap-12 wrap" style={{ marginTop: 26, justifyContent: 'center' }}>
             <Link href="/assistant" className="btn btn-primary">

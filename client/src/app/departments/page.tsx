@@ -1,23 +1,17 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Bookshelf } from '@/components/browse/Bookshelf';
-import { getDepartments } from '@/lib/db';
+import { getShelfBranches } from '@/lib/shelf-data';
 
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: 'Branches',
-  description: 'Browse previous year papers, notes and syllabus schemes by branch and semester.',
+  description: 'Browse indexed previous year papers by branch and course.',
 };
 
-const STATUS_LABEL: Record<string, { text: string; className: string }> = {
-  active: { text: 'Indexed', className: 'tag tag-positive' },
-  growing: { text: 'In progress', className: 'tag tag-amber' },
-  planned: { text: 'Planned', className: 'tag' },
-};
-
-export default function DepartmentsPage() {
-  const departments = getDepartments();
+export default async function DepartmentsPage() {
+  const branches = await getShelfBranches();
 
   return (
     <main>
@@ -26,15 +20,15 @@ export default function DepartmentsPage() {
           <p className="eyebrow">Coverage</p>
           <h1>Branches</h1>
           <p className="lead">
-            Papers are indexed branch by branch. Each course keeps its own papers, note sets and,
-            where available, syllabus schemes per academic year. Taller spines hold more questions.
+            Every paper is filed under the branch printed on its header; papers set for all branches sit on the
+            common shelf. Taller spines hold more questions.
           </p>
         </div>
       </section>
 
       <section style={{ paddingBottom: 'var(--space-12)' }}>
         <div className="shell">
-          <Bookshelf departments={departments} />
+          <Bookshelf branches={branches} />
         </div>
       </section>
 
@@ -46,56 +40,42 @@ export default function DepartmentsPage() {
               <table className="table">
                 <thead>
                   <tr>
-                    <th style={{ width: 70 }}>Code</th>
+                    <th style={{ width: 90 }}>Code</th>
                     <th>Branch</th>
                     <th className="nums">Courses</th>
                     <th className="nums">Papers</th>
                     <th className="nums">Questions</th>
-                    <th className="nums">Notes</th>
-                    <th>Status</th>
                     <th><span className="visually-hidden">Open</span></th>
                   </tr>
                 </thead>
                 <tbody>
-                  {departments.map((d) => {
-                    const status = STATUS_LABEL[d.status] ?? STATUS_LABEL.planned;
-                    return (
-                      <tr key={d.code}>
-                        <td>
-                          <span className="tag tag-code tag-accent">{d.code}</span>
-                        </td>
-                        <td>
-                          <div style={{ fontWeight: 600 }}>{d.name}</div>
-                          <div className="xs muted">{d.full_name}</div>
-                        </td>
-                        <td className="num">{d.course_count}</td>
-                        <td className="num">{d.paper_count}</td>
-                        <td className="num">{d.question_count}</td>
-                        <td className="num">{d.note_count}</td>
-                        <td>
-                          <span className={status.className}>{status.text}</span>
-                        </td>
-                        <td style={{ textAlign: 'right' }}>
-                          {d.course_count > 0 ? (
-                            <Link href={`/departments/${d.code}`} className="small" aria-label={`Open ${d.name}`}>
-                              Open →
-                            </Link>
-                          ) : (
-                            <span className="xs muted">—</span>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
+                  {branches.map((d) => (
+                    <tr key={d.code}>
+                      <td>
+                        <span className="tag tag-code tag-accent">{d.code === 'COMMON' ? 'ALL' : d.code}</span>
+                      </td>
+                      <td>
+                        <div style={{ fontWeight: 600 }}>{d.name}</div>
+                        <div className="xs muted">{d.fullName}</div>
+                      </td>
+                      <td className="num">{d.courses}</td>
+                      <td className="num">{d.papers}</td>
+                      <td className="num">{d.questions}</td>
+                      <td style={{ textAlign: 'right' }}>
+                        <Link href={`/departments/${d.code}`} className="small" aria-label={`Open ${d.name}`}>
+                          Open →
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
           </div>
 
           <p className="notice" style={{ marginTop: 24 }}>
-            Branches marked <strong>Planned</strong> have no papers digitised yet. Contributing a
-            scanned paper for one of them is the fastest way to open it up. See the{' '}
-            <Link href="/about#contribute">contribute</Link> section.
+            Missing your branch? Signed-in uploaders can add papers from the <Link href="/upload">upload page</Link>;
+            they are split into questions, tagged and searchable within a minute.
           </p>
         </div>
       </section>

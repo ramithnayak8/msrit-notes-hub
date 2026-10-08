@@ -35,6 +35,8 @@ const PATHS = {
   external: 'M14 4h6v6m0-6-9 9m7 1v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5',
   image: 'M4 5h16v14H4V5Zm0 11 5-5 4 4 3-3 4 4M15 9h.01',
   archive: 'M3 4h18v4H3V4Zm2 4v12h14V8M10 12h4',
+  user: 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-7 9a7 7 0 0 1 14 0',
+  upload: 'M12 16V4m0 0L7 9m5-5 5 5M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3',
 } as const;
 
 export type IconName = keyof typeof PATHS;

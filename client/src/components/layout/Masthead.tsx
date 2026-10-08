@@ -6,12 +6,13 @@ import { useEffect, useState } from 'react';
 import { Icon } from '@/components/ui/Icon';
 import { useStudyRoom } from '@/components/study/StudyRoomProvider';
 import { useFocus } from '@/components/study/FocusProvider';
+import { AccountButton } from './AccountButton';
 
 export const NAV_LINKS = [
   { href: '/search', label: 'Search' },
   { href: '/departments', label: 'Branches' },
   { href: '/papers', label: 'Past papers' },
-  { href: '/syllabus', label: 'Syllabus' },
+  { href: '/courses', label: 'Courses' },
   { href: '/assistant', label: 'Assistant' },
 ];
 
@@ -107,6 +108,7 @@ export function Masthead() {
           >
             <Icon name="sliders" />
           </button>
+          <AccountButton />
           <button
             type="button"
             className="icon-btn menu-toggle"

@@ -2,7 +2,7 @@ import { createStore } from './store';
 
 /** Enough of a question to show it on the shelf without a round trip. */
 export type SavedQuestion = {
-  id: number;
+  id: string | number;
   number: string;
   text: string;
   marks: number;

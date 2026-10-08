@@ -7,7 +7,7 @@ import { Icon, type IconName } from '@/components/ui/Icon';
 import { bestScore } from '@/lib/client/fuzzy';
 import { THEMES } from '@/lib/client/prefs';
 import { SCENES } from '@/components/ambience/scenes';
-import type { QuestionHit } from '@/lib/types';
+import type { SearchHit } from '@/lib/api';
 import { useStudyRoom } from './StudyRoomProvider';
 
 type Catalog = {
@@ -38,7 +38,7 @@ export function CommandPalette() {
   const [query, setQuery] = useState('');
   const [active, setActive] = useState(0);
   const [catalog, setCatalog] = useState<Catalog | null>(catalogCache);
-  const [hits, setHits] = useState<QuestionHit[]>([]);
+  const [hits, setHits] = useState<SearchHit[]>([]);
   const [searching, setSearching] = useState(false);
 
   useEffect(() => {
@@ -108,7 +108,8 @@ export function CommandPalette() {
       { id: 'p-search', group: 'Go to', label: 'Search questions', icon: 'search', run: () => go('/search') },
       { id: 'p-branches', group: 'Go to', label: 'Browse branches', icon: 'library', run: () => go('/departments') },
       { id: 'p-papers', group: 'Go to', label: 'Past papers library', icon: 'archive', run: () => go('/papers') },
-      { id: 'p-syllabus', group: 'Go to', label: 'Syllabus changes', icon: 'diff', run: () => go('/syllabus') },
+      { id: 'p-courses', group: 'Go to', label: 'Courses in the current scheme', icon: 'diff', run: () => go('/courses') },
+      { id: 'p-upload', group: 'Go to', label: 'Upload a paper', icon: 'file', run: () => go('/upload') },
       { id: 'p-assistant', group: 'Go to', label: 'Study assistant', icon: 'message', run: () => go('/assistant') },
       { id: 'p-shelf', group: 'Go to', label: 'My shelf: saved questions and streak', icon: 'bookmark', run: () => go('/shelf') },
       { id: 'p-home', group: 'Go to', label: 'Home', icon: 'home', run: () => go('/') },
@@ -204,9 +205,9 @@ export function CommandPalette() {
       id: `q-${h.id}`,
       group: 'Questions',
       label: h.text.length > 90 ? `${h.text.slice(0, 88)}…` : h.text,
-      hint: `${h.courseCode} · ${h.month} ${h.year} · Q${h.number}`,
+      hint: [h.course.code, [h.source.month, h.year].filter(Boolean).join(' '), h.label].filter(Boolean).join(' · '),
       icon: 'file',
-      run: () => go(`/courses/${h.courseCode}#q-${h.id}`),
+      run: () => go(h.course.code ? `/courses/${h.course.code}#q-${h.id}` : `/search?q=${encodeURIComponent(q)}`),
     }));
     const pages = rank(scoredCommands, 5);
     // A command that matches better than every course goes first ("rain" -> Rainy window).

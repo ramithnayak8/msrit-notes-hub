@@ -4,7 +4,9 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { Tilt } from '@/components/ui/Tilt';
-import type { CourseWithStats } from '@/lib/types';
+
+/** What a course book shows on its cover. */
+export type BookCourse = { code: string; title: string; questions: number; papers: number; years: number[] };
 
 const OPEN_MS = 420;
 
@@ -17,7 +19,7 @@ export function CourseBook({
   from,
   to,
 }: {
-  course: CourseWithStats;
+  course: BookCourse;
   from: string;
   to: string;
 }) {
@@ -52,11 +54,14 @@ export function CourseBook({
           <span className="book-code">{course.code}</span>
           <span className="book-title">{course.title}</span>
           <span className="book-meta nums">
-            <span>{course.question_count} questions</span>
-            <span>{course.paper_count} papers</span>
-            <span>{course.note_count} notes</span>
+            <span>{course.questions} questions</span>
+            <span>{course.papers} paper{course.papers === 1 ? '' : 's'}</span>
           </span>
-          <span className="book-credits">{course.credits} credits</span>
+          {course.years.length > 0 && (
+            <span className="book-credits">
+              {course.years[0] === course.years.at(-1) ? course.years[0] : `${course.years[0]}–${course.years.at(-1)}`}
+            </span>
+          )}
         </span>
       </Link>
     </Tilt>

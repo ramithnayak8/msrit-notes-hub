@@ -3,18 +3,25 @@
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { AnswerBody } from '@/components/AnswerBody';
-import type { ChatReply } from '@/lib/chat';
+/** The API's answer: composed from retrieved questions and topic counts, with no language model. */
+type ChatReply = {
+  answer: string;
+  sources: { kind: string; label: string; detail: string }[];
+  mode: string;
+  retrieved: number;
+  tookMs: number;
+};
 
 type Turn =
   | { role: 'question'; text: string }
   | { role: 'answer'; reply: ChatReply };
 
 const PROMPTS = [
-  'How has the Operating Systems syllabus changed from last year?',
-  'What should I revise first for Operating Systems?',
-  'Show me deadlock questions from the last 2 years',
-  'Which DBMS topics repeat the most?',
-  'Binary tree questions worth 10 marks',
+  'What should I revise first for ML?',
+  'Which Software Engineering topics repeat the most?',
+  'Most important topics for DAA',
+  'Show me agile process questions',
+  'Shortest path questions worth 8 marks',
 ];
 
 function Assistant() {
@@ -37,7 +44,7 @@ function Assistant() {
     setPending(true);
 
     try {
-      const response = await fetch('/api/chat', {
+      const response = await fetch('/api/assistant', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ question }),
@@ -52,7 +59,7 @@ function Assistant() {
           reply: {
             answer: 'The assistant could not be reached. Check that the server is running.',
             sources: [],
-            mode: 'local',
+            mode: 'retrieval',
             retrieved: 0,
             tookMs: 0,
           },
@@ -75,8 +82,8 @@ function Assistant() {
       <aside className="assistant-side">
         <div className="label">Study assistant</div>
         <p className="small muted" style={{ marginTop: 12, lineHeight: 1.6 }}>
-          Answers are grounded in retrieved questions and syllabus schemes from the archive. Every
-          answer lists the papers it drew on.
+          Answers are built only from the archive: topic counts across papers for &ldquo;what to revise&rdquo;,
+          and the closest questions otherwise. No language model runs here, and every answer lists its sources.
         </p>
 
         <div className="label" style={{ marginTop: 28 }}>Try asking</div>
@@ -120,8 +127,8 @@ function Assistant() {
             <div style={{ margin: 'auto', maxWidth: 520, textAlign: 'center' }}>
               <h2 style={{ fontSize: 34 }}>Ask the archive what to revise</h2>
               <p className="lead" style={{ marginTop: 12, fontSize: 15 }}>
-                The assistant searches indexed question papers and syllabus schemes, then answers
-                from what it finds — with the source papers cited underneath.
+                It ranks topics by how many papers examined them, or finds the closest questions,
+                with the source papers cited underneath.
               </p>
               {/* The sidebar with these prompts is hidden on small screens. */}
               <div className="examples assistant-prompts-mobile" style={{ marginTop: 20, justifyContent: 'center' }}>
@@ -158,9 +165,7 @@ function Assistant() {
                     <p className="xs muted" style={{ marginTop: 12 }}>
                       {turn.reply.retrieved} record{turn.reply.retrieved === 1 ? '' : 's'} retrieved ·{' '}
                       {turn.reply.tookMs} ms ·{' '}
-                      {turn.reply.mode === 'claude'
-                        ? 'composed by Claude from retrieved context'
-                        : 'composed directly from the archive'}
+                      answered from retrieval, no language model
                     </p>
                   </div>
                 )}
