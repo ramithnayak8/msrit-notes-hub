@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
-import { answerQuestion } from '@/lib/chat';
+import { withBackendErrors } from '@/lib/api-errors';
+import { answerQuestion } from '@/lib/data';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-export async function POST(request: Request) {
+async function post(request: Request) {
   let question: unknown;
   try {
     ({ question } = await request.json());
@@ -18,3 +19,5 @@ export async function POST(request: Request) {
 
   return NextResponse.json(await answerQuestion(question.trim()));
 }
+
+export const POST = withBackendErrors(post);

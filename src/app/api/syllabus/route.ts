@@ -1,18 +1,19 @@
 import { NextResponse } from 'next/server';
-import { diffSyllabus, getSyllabusCourses } from '@/lib/db';
+import { withBackendErrors } from '@/lib/api-errors';
+import { diffSyllabus, getSyllabusCourses } from '@/lib/data';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-export async function GET(request: Request) {
+async function get(request: Request) {
   const { searchParams } = new URL(request.url);
   const course = searchParams.get('course');
 
   if (!course) {
-    return NextResponse.json({ tracked: getSyllabusCourses() });
+    return NextResponse.json({ tracked: await getSyllabusCourses() });
   }
 
-  const diff = diffSyllabus(course);
+  const diff = await diffSyllabus(course);
   if (!diff) {
     return NextResponse.json(
       { error: `No tracked syllabus versions for "${course}"` },
@@ -21,3 +22,5 @@ export async function GET(request: Request) {
   }
   return NextResponse.json(diff);
 }
+
+export const GET = withBackendErrors(get);

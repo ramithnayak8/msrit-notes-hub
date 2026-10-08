@@ -16,6 +16,20 @@ npm run dev      # http://localhost:3000
 Node 22+ is required (the database uses the built-in `node:sqlite` module, so there is no
 native build step). Re-running `npm run seed` drops and rebuilds the database.
 
+## Connecting the backend
+
+The frontend reads all data through [`src/lib/data.ts`](src/lib/data.ts). Without
+configuration it uses the bundled SQLite database. To use the team backend instead:
+
+```bash
+npm run check:backend                       # with BACKEND_URL set: checks every endpoint
+echo "BACKEND_URL=http://localhost:5000/api" > .env.local
+npm run dev                                 # /api/health shows which source is live
+```
+
+The endpoints and response shapes are in [docs/BACKEND_CONTRACT.md](docs/BACKEND_CONTRACT.md).
+`/api/v1/*` in this app is a working reference implementation of that contract.
+
 ## Stack
 
 | Layer     | Choice                                                        |

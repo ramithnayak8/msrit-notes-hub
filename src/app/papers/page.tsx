@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { PaperRow } from '@/components/browse/PaperRow';
 import { Icon } from '@/components/ui/Icon';
-import { getDepartments, getLibraryStats, getPaperLibrary } from '@/lib/db';
+import { getDepartments, getLibraryStats, getPaperLibrary } from '@/lib/data';
 import { EXAM_GROUPS, PAPER_SOURCES } from '@/lib/sources';
 
 export const dynamic = 'force-dynamic';
@@ -22,12 +22,14 @@ export default async function PapersPage({ searchParams }: { searchParams: Promi
   const params = await searchParams;
   const year = YEARS.includes(Number(params.year)) ? Number(params.year) : undefined;
   const exam = EXAM_GROUPS.find((g) => g.id === params.exam);
-  const departments = getDepartments().filter((d) => d.status !== 'planned' || d.code === 'BT');
+  const departments = (await getDepartments()).filter((d) => d.status !== 'planned' || d.code === 'BT');
   const dept = departments.find((d) => d.code === params.dept)?.code;
   const q = (params.q ?? '').slice(0, 80);
 
-  const stats = getLibraryStats();
-  const library = getPaperLibrary({ q, year, dept, exam: exam?.match, page: Number(params.page) || 1 });
+  const [stats, library] = await Promise.all([
+    getLibraryStats(),
+    getPaperLibrary({ q, year, dept, exam: exam?.match, page: Number(params.page) || 1 }),
+  ]);
 
   /** Link to this page with some filters changed; page resets unless set. */
   const href = (change: Partial<Search>) => {

@@ -12,14 +12,14 @@ import {
   getPapersByCourse,
   getQuestionsByCourse,
   getSyllabusVersions,
-} from '@/lib/db';
+} from '@/lib/data';
 
 export const dynamic = 'force-dynamic';
 
 type Params = { params: Promise<{ code: string }> };
 
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
-  const course = getCourse((await params).code);
+  const course = await getCourse((await params).code);
   return course
     ? {
         title: `${course.title} (${course.code})`,
@@ -30,15 +30,17 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
 
 export default async function CoursePage({ params }: Params) {
   const { code } = await params;
-  const course = getCourse(code);
+  const course = await getCourse(code);
   if (!course) notFound();
 
-  const department = getDepartment(course.dept_code);
-  const papers = getPapersByCourse(course.code);
-  const questions = getQuestionsByCourse(course.code);
-  const notes = getNotesByCourse(course.code);
-  const schemes = getSyllabusVersions(course.code);
-  const external = getExternalPapersByCourse(course.code);
+  const [department, papers, questions, notes, schemes, external] = await Promise.all([
+    getDepartment(course.dept_code),
+    getPapersByCourse(course.code),
+    getQuestionsByCourse(course.code),
+    getNotesByCourse(course.code),
+    getSyllabusVersions(course.code),
+    getExternalPapersByCourse(course.code),
+  ]);
 
   const byPaper = new Map<number, typeof questions>();
   for (const q of questions) {

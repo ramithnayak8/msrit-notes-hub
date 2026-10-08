@@ -5,8 +5,7 @@ import { Bookshelf } from '@/components/browse/Bookshelf';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { Tilt } from '@/components/ui/Tilt';
 import { Counter } from '@/components/ui/Counter';
-import { getStats, getDepartments, diffSyllabus, getLibraryStats, getLibraryByYear } from '@/lib/db';
-import { searchQuestions } from '@/lib/search';
+import { getStats, getDepartments, diffSyllabus, getLibraryStats, getLibraryByYear, searchQuestions } from '@/lib/data';
 
 export const dynamic = 'force-dynamic';
 
@@ -50,13 +49,15 @@ const FEATURES: { icon: IconName; title: string; body: React.ReactNode }[] = [
   },
 ];
 
-export default function HomePage() {
-  const stats = getStats();
-  const library = getLibraryStats();
-  const byYear = getLibraryByYear();
-  const departments = getDepartments();
-  const demo = searchQuestions('binary tree questions from the last 3 years', 2);
-  const diff = diffSyllabus('CS501');
+export default async function HomePage() {
+  const [stats, library, byYear, departments, demo, diff] = await Promise.all([
+    getStats(),
+    getLibraryStats(),
+    getLibraryByYear(),
+    getDepartments(),
+    searchQuestions('binary tree questions from the last 3 years', 2),
+    diffSyllabus('CS501'),
+  ]);
 
   return (
     <main>

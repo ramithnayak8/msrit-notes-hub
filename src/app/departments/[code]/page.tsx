@@ -3,14 +3,14 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { CourseBook } from '@/components/browse/CourseBook';
 import { Icon } from '@/components/ui/Icon';
-import { getCoursesByDept, getDepartment } from '@/lib/db';
+import { getCoursesByDept, getDepartment } from '@/lib/data';
 
 export const dynamic = 'force-dynamic';
 
 type Params = { params: Promise<{ code: string }> };
 
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
-  const department = getDepartment((await params).code);
+  const department = await getDepartment((await params).code);
   return department
     ? {
         title: department.full_name,
@@ -21,10 +21,10 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
 
 export default async function DepartmentPage({ params }: Params) {
   const { code } = await params;
-  const department = getDepartment(code);
+  const department = await getDepartment(code);
   if (!department) notFound();
 
-  const courses = getCoursesByDept(code);
+  const courses = await getCoursesByDept(code);
   const bySemester = new Map<number, typeof courses>();
   for (const course of courses) {
     if (!bySemester.has(course.semester)) bySemester.set(course.semester, []);

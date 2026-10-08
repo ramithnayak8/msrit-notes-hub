@@ -10,7 +10,8 @@
     "start": "next start -p 3000",
     "lint": "eslint .",
     "crawl": "node scripts/crawl-sources.mjs && node scripts/classify-papers.mjs",
-    "classify": "node scripts/classify-papers.mjs"
+    "classify": "node scripts/classify-papers.mjs",
+    "check:backend": "node scripts/check-backend.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.126.0",

@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { diffSyllabus, getSyllabusCourses, getSyllabusUnits } from '@/lib/db';
+import { diffSyllabus, getSyllabusCourses, getSyllabusUnits } from '@/lib/data';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,10 +15,10 @@ export default async function SyllabusPage({
   searchParams: Promise<{ course?: string }>;
 }) {
   const { course } = await searchParams;
-  const tracked = getSyllabusCourses();
+  const tracked = await getSyllabusCourses();
   const selected = course ?? tracked[0]?.code;
-  const diff = selected ? diffSyllabus(selected) : null;
-  const currentUnits = diff ? getSyllabusUnits(diff.to.id) : [];
+  const diff = selected ? await diffSyllabus(selected) : null;
+  const currentUnits = diff ? await getSyllabusUnits(diff.to.id) : [];
 
   return (
     <main>

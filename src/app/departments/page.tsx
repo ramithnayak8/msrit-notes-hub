@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Bookshelf } from '@/components/browse/Bookshelf';
-import { getDepartments } from '@/lib/db';
+import { getDepartments } from '@/lib/data';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,8 +16,8 @@ const STATUS_LABEL: Record<string, { text: string; className: string }> = {
   planned: { text: 'Planned', className: 'tag' },
 };
 
-export default function DepartmentsPage() {
-  const departments = getDepartments();
+export default async function DepartmentsPage() {
+  const departments = await getDepartments();
 
   return (
     <main>

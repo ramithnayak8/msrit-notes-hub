@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { getStats, getYearRange } from '@/lib/db';
+import { getStats, getYearRange } from '@/lib/data';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,9 +19,8 @@ const ENDPOINTS = [
   { method: 'POST', path: '/api/chat', description: 'Retrieval-augmented answer; body { question }' },
 ];
 
-export default function AboutPage() {
-  const stats = getStats();
-  const years = getYearRange();
+export default async function AboutPage() {
+  const [stats, years] = await Promise.all([getStats(), getYearRange()]);
 
   return (
     <main>
