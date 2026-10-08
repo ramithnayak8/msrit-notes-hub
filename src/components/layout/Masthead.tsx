@@ -13,6 +13,7 @@ export const NAV_LINKS = [
   { href: '/papers', label: 'Past papers' },
   { href: '/syllabus', label: 'Syllabus' },
   { href: '/assistant', label: 'Assistant' },
+  { href: '/dashboard', label: 'Dashboard' },
 ];
 
 export function Masthead() {
