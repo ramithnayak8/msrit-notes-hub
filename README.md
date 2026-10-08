@@ -112,3 +112,30 @@ mode and reports Recall@10 and MRR.
 ```bash
 npm run seed -w client   # builds client/data/msrit.db from client/data/sources/external-papers.json
 ```
+
+## Dashboard (runs without the API server)
+
+`/dashboard` shows sign-in, roles and CRUD on notes using only the client's local SQLite
+file, so it works with just `npm run dev:client` (after `npm run seed -w client`). It has
+its own accounts, separate from the main sign-in on the API server, and they are created on
+first use:
+
+| Account | Password | Role | Can |
+| ------- | -------- | ---- | --- |
+| admin@msrit.edu | admin123 | admin | everything below, plus edit or delete any note and manage users |
+| uploader@msrit.edu | uploader123 | uploader | create notes, edit their own |
+| student@msrit.edu | student123 | user | read |
+
+Passwords are hashed with scrypt; the session is an httpOnly cookie signed with HMAC
+(`SESSION_SECRET`). Every rule is checked in the route handlers under
+`client/src/app/api/demo/`:
+
+| Method | Endpoint | Who |
+| ------ | -------- | --- |
+| POST | `/api/demo/auth/login` · `/register` · `/logout` | anyone |
+| GET | `/api/demo/auth/me` | anyone |
+| GET | `/api/demo/notes` | anyone |
+| POST | `/api/demo/notes` | uploader |
+| PATCH | `/api/demo/notes/:id` | uploader (own notes), admin (any) |
+| DELETE | `/api/demo/notes/:id` | admin |
+| GET | `/api/demo/users` · PATCH/DELETE `/api/demo/users/:id` | admin |

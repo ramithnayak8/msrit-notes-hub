@@ -14,6 +14,7 @@ export const NAV_LINKS = [
   { href: '/papers', label: 'Past papers' },
   { href: '/courses', label: 'Courses' },
   { href: '/assistant', label: 'Assistant' },
+  { href: '/dashboard', label: 'Dashboard' },
 ];
 
 export function Masthead() {
