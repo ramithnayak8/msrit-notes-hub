@@ -1,19 +1,28 @@
 'use client';
 
 import { Suspense, useCallback, useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { SearchBox, ExampleQueries } from '@/components/SearchBox';
 import { QuestionResult } from '@/components/QuestionResult';
 import { Icon } from '@/components/ui/Icon';
-import type { SearchResponse } from '@/lib/types';
+import type { SearchResponse } from '@/lib/api';
 
 const EXAMPLES = [
-  'binary tree questions from the last 3 years',
-  'deadlock CS501',
-  'normalization 10 marks',
-  'neural networks CSE',
-  'shortest path algorithms since 2022',
+  'shortest path from a single source',
+  'agile vs waterfall',
+  'ML confusion matrix',
+  'DAA greedy algorithms 2023',
+  'copyright infringement remedies',
+  'using a stack to rewrite arithmetic expressions',
 ];
+
+const MODES = [
+  { id: 'hybrid', label: 'Hybrid', hint: 'Keyword and meaning searches, merged' },
+  { id: 'keyword', label: 'Keyword', hint: 'BM25 over question text and topic tags' },
+  { id: 'vector', label: 'Meaning', hint: 'Nearest questions by embedding similarity' },
+] as const;
+type Mode = (typeof MODES)[number]['id'];
 
 function ResultSkeleton() {
   return (
@@ -30,18 +39,25 @@ function ResultSkeleton() {
   );
 }
 
+function countBy<T>(items: T[], key: (item: T) => (string | number | undefined)[]) {
+  const counts = new Map<string | number, number>();
+  for (const item of items) for (const k of key(item)) if (k !== undefined) counts.set(k, (counts.get(k) ?? 0) + 1);
+  return counts;
+}
+
 function SearchResults() {
   const params = useSearchParams();
   const q = params.get('q') ?? '';
+  const mode = (MODES.some((m) => m.id === params.get('mode')) ? params.get('mode') : 'hybrid') as Mode;
   const [data, setData] = useState<SearchResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const run = useCallback(async (query: string) => {
+  const run = useCallback(async (query: string, m: Mode) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`/api/search?q=${encodeURIComponent(query)}&limit=25`);
+      const response = await fetch(`/api/search?q=${encodeURIComponent(query)}&mode=${m}&limit=25`);
       if (!response.ok) throw new Error(`Search failed (${response.status})`);
       setData(await response.json());
     } catch (err) {
@@ -53,13 +69,18 @@ function SearchResults() {
   }, []);
 
   useEffect(() => {
-    if (q) run(q);
+    if (q) run(q, mode);
     else setData(null);
-  }, [q, run]);
+  }, [q, mode, run]);
 
-  const maxYearCount = data ? Math.max(...data.yearSummary.map((y) => y.count), 1) : 1;
   // Keep the previous results on screen (dimmed) while the next query loads.
   const stale = loading && data !== null;
+  const terms = data?.query.text.split(/\s+/).filter(Boolean) ?? [];
+  const years = data ? [...countBy(data.hits, (h) => [h.year]).entries()].sort((a, b) => Number(b[0]) - Number(a[0])) : [];
+  const maxYearCount = Math.max(...years.map(([, n]) => n), 1);
+  const topicLabels = new Map(data?.hits.flatMap((h) => h.topics.map((t) => [t.name, t.label] as const)) ?? []);
+  const topics = data ? [...countBy(data.hits, (h) => h.topics.map((t) => t.name)).entries()].sort((a, b) => b[1] - a[1]).slice(0, 8) : [];
+  const repeated = data?.hits.filter((h) => h.recurrence.count > 1).length ?? 0;
 
   return (
     <main>
@@ -77,19 +98,32 @@ function SearchResults() {
             </div>
           )}
 
+          {q && (
+            <div className="row gap-6 wrap" style={{ marginTop: 14 }} role="group" aria-label="Search mode">
+              {MODES.map((m) => (
+                <Link
+                  key={m.id}
+                  href={`/search?q=${encodeURIComponent(q)}${m.id === 'hybrid' ? '' : `&mode=${m.id}`}`}
+                  className={`btn btn-sm ${mode === m.id ? 'btn-primary' : 'btn-outline'}`}
+                  aria-current={mode === m.id ? 'true' : undefined}
+                  title={m.hint}
+                >
+                  {m.label}
+                </Link>
+              ))}
+            </div>
+          )}
+
           <div aria-live="polite" aria-atomic="true">
             {data && (
               <div className={`interpret${stale ? ' is-stale' : ''}`} style={{ marginTop: 16 }}>
                 <span className="label" style={{ color: 'var(--accent)' }}>Interpreted as</span>
-                {data.query.explanation.length ? (
-                  data.query.explanation.map((part) => (
-                    <span key={part} className="tag tag-accent">{part}</span>
-                  ))
-                ) : (
-                  <span className="tag tag-accent">free text</span>
-                )}
+                {data.query.understood.map((part) => (
+                  <span key={part} className="tag tag-accent">{part}</span>
+                ))}
+                {data.query.text && <span className="tag">topic: {data.query.text}</span>}
                 <span className="muted xs nums">
-                  {data.total} match{data.total === 1 ? '' : 'es'} · {data.tookMs} ms
+                  {data.total} match{data.total === 1 ? '' : 'es'} · {data.tookMs} ms · no language model used
                 </span>
               </div>
             )}
@@ -103,8 +137,8 @@ function SearchResults() {
 
           {error && (
             <div className="notice row between wrap gap-12" style={{ borderLeftColor: 'var(--negative)' }} role="alert">
-              <span>{error}. The archive could not be reached.</span>
-              <button type="button" className="btn btn-outline btn-sm" onClick={() => run(q)}>
+              <span>{error}. Is the API server running (npm run dev:server)?</span>
+              <button type="button" className="btn btn-outline btn-sm" onClick={() => run(q, mode)}>
                 <Icon name="reset" size={15} /> Try again
               </button>
             </div>
@@ -115,8 +149,8 @@ function SearchResults() {
               <span className="empty-mark"><Icon name="bookOpen" size={40} strokeWidth={1.2} /></span>
               <p className="empty-title">What are you revising today?</p>
               <p className="small" style={{ marginTop: 8 }}>
-                Try a topic, a course code, or a full sentence with a time range. Tip: press{' '}
-                <span className="kbd">/</span> anywhere to jump straight to a course.
+                Search by concept, not by subject code. Add a course (&ldquo;ML&rdquo;, &ldquo;CS43&rdquo;), a year range or
+                &ldquo;10 marks&rdquo; and they become filters. Tip: press <span className="kbd">/</span> to jump to a course.
               </p>
             </div>
           )}
@@ -125,10 +159,7 @@ function SearchResults() {
             <div className={`empty${stale ? ' is-stale' : ''}`}>
               <span className="empty-mark"><Icon name="search" size={40} strokeWidth={1.2} /></span>
               <p className="empty-title">Nothing on the shelves for that</p>
-              <p className="small" style={{ marginTop: 8 }}>
-                Try removing a filter, or search for a broader topic such as &ldquo;trees&rdquo; or
-                &ldquo;scheduling&rdquo;.
-              </p>
+              <p className="small" style={{ marginTop: 8 }}>Try removing a filter, or search for a broader topic.</p>
             </div>
           )}
 
@@ -136,7 +167,7 @@ function SearchResults() {
             <div className={`search-layout${stale ? ' is-stale' : ''}`} aria-busy={stale || undefined}>
               <div className="divide">
                 {data.hits.map((hit, i) => (
-                  <QuestionResult key={hit.id} hit={hit} rank={i + 1} />
+                  <QuestionResult key={hit.id} hit={hit} rank={i + 1} terms={terms} />
                 ))}
                 {data.total > data.hits.length && (
                   <p className="small muted" style={{ paddingTop: 22 }}>
@@ -149,14 +180,14 @@ function SearchResults() {
                 <div className="panel panel-pad">
                   <div className="label">By year</div>
                   <div className="stack gap-10" style={{ marginTop: 14 }}>
-                    {data.yearSummary.map((y) => (
-                      <div key={y.year}>
+                    {years.map(([year, count]) => (
+                      <div key={year}>
                         <div className="row between xs soft nums">
-                          <span>{y.year}</span>
-                          <span>{y.count}</span>
+                          <span>{year}</span>
+                          <span>{count}</span>
                         </div>
                         <div className="bar-track" style={{ marginTop: 5 }}>
-                          <div className="bar-fill" style={{ width: `${(y.count / maxYearCount) * 100}%` }} />
+                          <div className="bar-fill" style={{ width: `${(count / maxYearCount) * 100}%` }} />
                         </div>
                       </div>
                     ))}
@@ -164,29 +195,29 @@ function SearchResults() {
                 </div>
 
                 <div className="panel panel-pad">
-                  <div className="label">Recurring topics</div>
+                  <div className="label">Topics in these results</div>
                   <div className="stack gap-8" style={{ marginTop: 14 }}>
-                    {data.topicSummary.map((t) => (
-                      <div key={t.topic} className="row between gap-10 small">
-                        <span className="soft">{t.topic}</span>
-                        <span className="muted nums xs">{t.count}</span>
-                      </div>
+                    {topics.map(([name, count]) => (
+                      <Link key={name} href={`/search?q=${encodeURIComponent(topicLabels.get(String(name)) ?? String(name))}`} className="row between gap-10 small">
+                        <span className="soft">{topicLabels.get(String(name)) ?? name}</span>
+                        <span className="muted nums xs">{count}</span>
+                      </Link>
                     ))}
                   </div>
+                  {repeated > 0 && (
+                    <p className="xs muted" style={{ marginTop: 14 }}>
+                      {repeated} of these questions were asked in more than one paper.
+                    </p>
+                  )}
                 </div>
 
                 <div className="panel panel-pad">
-                  <div className="label">Query expansion</div>
-                  <p className="xs muted" style={{ marginTop: 10, lineHeight: 1.55 }}>
-                    Related terms the engine also searched for, weighted by association strength.
+                  <div className="label">How this was ranked</div>
+                  <p className="xs muted" style={{ marginTop: 10, lineHeight: 1.6 }}>
+                    {mode === 'hybrid' && 'Two searches ran with the same filters: keyword (BM25) and meaning (embedding similarity). Their rankings were merged by reciprocal rank fusion, so a question found by both rises to the top.'}
+                    {mode === 'keyword' && 'Keyword only: BM25 over the question text, topic tags and course title. Strong on exact terms, blind to paraphrases.'}
+                    {mode === 'vector' && 'Meaning only: the query is embedded locally and the nearest questions are found with Atlas Vector Search. Finds paraphrases, but can drift.'}
                   </p>
-                  <div className="row wrap gap-6" style={{ marginTop: 12 }}>
-                    {data.query.expandedTerms.slice(0, 12).map((t) => (
-                      <span key={t.term} className={`tag${t.weight >= 0.9 ? ' tag-accent' : ''}`} title={`weight ${t.weight.toFixed(2)}`}>
-                        {t.term}
-                      </span>
-                    ))}
-                  </div>
                 </div>
               </aside>
             </div>

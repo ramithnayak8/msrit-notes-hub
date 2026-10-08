@@ -6,14 +6,25 @@ they examine, embedded as vectors and indexed, so a student can find every quest
 topic across years and subjects, with a citation back to the paper, year and question number.
 
 ```
-client/   Next.js (React) UI
+client/   Next.js (React) site; /api/* is forwarded to the server
 server/   Express API + ingestion worker (MongoDB Atlas, Atlas Search, Atlas Vector Search)
 ```
 
-> The client still runs on its original placeholder data (SQLite, invented questions).
-> Connecting it to the server's API is the next step.
+## Running it
 
-## Running the backend
+Three terminals, from the repo root (Docker Desktop must be running):
+
+```bash
+npm run db:up        # MongoDB
+npm run dev:server   # API on http://localhost:4000
+npm run dev:client   # site on http://localhost:3000
+```
+
+The site reads everything from the API except the past-papers library (links to papers on
+other student sites), which lives in a local SQLite file built by `npm run seed -w client`.
+Sign in at `/login`; uploaders and moderators get `/upload`.
+
+## Setting up the backend the first time
 
 Needs Node 22+ and Docker Desktop.
 
@@ -39,9 +50,11 @@ npm run import:papers -w server -- ../samples/papers
 
 `server/api.http` walks through every endpoint (VS Code REST Client extension).
 
-Topic tagging needs a free [Gemini API key](https://aistudio.google.com/apikey) (or a Groq
-key) in `server/.env`. Without one, everything else works and tagging falls back to
-nearest-topic matching on embeddings.
+Topic tagging and the segmentation fallback need a language model at ingestion time: a free
+[Gemini API key](https://aistudio.google.com/apikey) or Groq key in `server/.env`, or, on your
+own machine only, `USE_CLAUDE_CODE=true` to run Claude Code headless on your own login.
+Without any, everything else works and tagging falls back to nearest-topic matching on
+embeddings. Search never calls a model.
 
 ## How it works
 
@@ -88,13 +101,14 @@ mode and reports Recall@10 and MRR.
 | GET | `/api/search?q=&mode=hybrid\|vector\|keyword` | Search with parsed filters |
 | GET | `/api/analytics/topics` · `/distribution?by=` · `/recurring` · `/stats` | Topic frequency, distributions, repeated questions |
 | GET | `/api/courses?semester=5` | Current scheme, each course linked to past papers on the same subject |
+| GET | `/api/branches` · `/api/catalog?branch=` · `/api/course/:code` | Browsing by branch and course |
+| POST | `/api/assistant` | Retrieval-only study assistant (topic counts or closest questions) |
 | GET/POST/PATCH | `/api/topics` | Vocabulary; approve, rename or merge topics (moderator) |
 | GET/POST | `/api/review` · `/api/review/:id/resolve` | Moderation queue |
 | PATCH | `/api/questions/:id` | Correct a question; it is re-embedded (moderator) |
 
-## Running the client
+## Past-papers library
 
 ```bash
-npm run seed -w client
-npm run dev:client      # http://localhost:3000
+npm run seed -w client   # builds client/data/msrit.db from client/data/sources/external-papers.json
 ```

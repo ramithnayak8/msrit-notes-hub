@@ -12,7 +12,9 @@ import { EMBEDDING_MODEL } from './ml/embedder.js';
 import { errorHandler, notFoundHandler } from './middleware/errors.js';
 import { JobModel } from './models/Job.js';
 import { analyticsRouter } from './routes/analytics.js';
+import { assistantRouter } from './routes/assistant.js';
 import { authRouter } from './routes/auth.js';
+import { browseRouter } from './routes/browse.js';
 import { coursesRouter } from './routes/courses.js';
 import { documentsRouter } from './routes/documents.js';
 import { questionsRouter, reviewRouter } from './routes/review.js';
@@ -66,6 +68,8 @@ export function createApp() {
   app.use('/api/courses', coursesRouter);
   app.use('/api/review', reviewRouter);
   app.use('/api/analytics', analyticsRouter);
+  app.use('/api/assistant', assistantRouter);
+  app.use('/api', browseRouter);
 
   app.get('/api/jobs/:id', async (req, res) => {
     if (!isValidObjectId(req.params.id)) throw notFound('Job');

@@ -1,44 +1,31 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
 import { CourseBook } from '@/components/browse/CourseBook';
 import { Icon } from '@/components/ui/Icon';
-import { getCoursesByDept, getDepartment } from '@/lib/db';
+import { apiGet, type CatalogCourse } from '@/lib/api';
+import { branchInfo } from '@/lib/branches';
 
 export const dynamic = 'force-dynamic';
 
 type Params = { params: Promise<{ code: string }> };
 
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
-  const department = getDepartment((await params).code);
-  return department
-    ? {
-        title: department.full_name,
-        description: `Previous year papers, notes and syllabus schemes for ${department.full_name}, semester by semester.`,
-      }
-    : { title: 'Branch not found' };
+  const branch = branchInfo((await params).code.toUpperCase());
+  return { title: branch.fullName, description: `Indexed previous year papers for ${branch.fullName}, by semester.` };
 }
 
 export default async function DepartmentPage({ params }: Params) {
-  const { code } = await params;
-  const department = getDepartment(code);
-  if (!department) notFound();
+  const code = (await params).code.toUpperCase();
+  const branch = branchInfo(code);
+  const { items: courses } = await apiGet<{ items: CatalogCourse[] }>(`/catalog?branch=${encodeURIComponent(code)}`);
 
-  const courses = getCoursesByDept(code);
-  const bySemester = new Map<number, typeof courses>();
+  const bySemester = new Map<number, CatalogCourse[]>();
   for (const course of courses) {
-    if (!bySemester.has(course.semester)) bySemester.set(course.semester, []);
-    bySemester.get(course.semester)!.push(course);
+    const sem = course.semester ?? 0;
+    if (!bySemester.has(sem)) bySemester.set(sem, []);
+    bySemester.get(sem)!.push(course);
   }
-
-  const totals = courses.reduce(
-    (acc, c) => ({
-      papers: acc.papers + c.paper_count,
-      questions: acc.questions + c.question_count,
-      notes: acc.notes + c.note_count,
-    }),
-    { papers: 0, questions: 0, notes: 0 }
-  );
+  const totals = courses.reduce((acc, c) => ({ papers: acc.papers + c.papers, questions: acc.questions + c.questions }), { papers: 0, questions: 0 });
 
   return (
     <main>
@@ -47,17 +34,19 @@ export default async function DepartmentPage({ params }: Params) {
           <nav className="breadcrumb" aria-label="Breadcrumb">
             <Link href="/departments">Branches</Link>
             <span aria-hidden>/</span>
-            <span aria-current="page">{department.code}</span>
+            <span aria-current="page">{code === 'COMMON' ? 'All branches' : code}</span>
           </nav>
 
           <div className="row between wrap gap-20" style={{ alignItems: 'flex-end' }}>
             <div>
-              <h1>{department.name}</h1>
-              <p className="lead" style={{ marginTop: 8 }}>{department.full_name}</p>
+              <h1>{branch.name}</h1>
+              <p className="lead" style={{ marginTop: 8 }}>{branch.fullName}</p>
             </div>
-            <Link href={`/search?q=${encodeURIComponent(department.code)}`} className="btn btn-outline btn-sm">
-              <Icon name="search" size={16} /> Search within {department.code}
-            </Link>
+            {code !== 'COMMON' && (
+              <Link href={`/search?q=${encodeURIComponent(code)}`} className="btn btn-outline btn-sm">
+                <Icon name="search" size={16} /> Search within {code}
+              </Link>
+            )}
           </div>
 
           <div className="panel panel-pad" style={{ marginTop: 28 }}>
@@ -74,10 +63,6 @@ export default async function DepartmentPage({ params }: Params) {
                 <div className="stat-value">{totals.questions}</div>
                 <div className="stat-label">Questions indexed</div>
               </div>
-              <div className="stat">
-                <div className="stat-value">{totals.notes}</div>
-                <div className="stat-label">Note sets</div>
-              </div>
             </div>
           </div>
         </div>
@@ -86,19 +71,18 @@ export default async function DepartmentPage({ params }: Params) {
       <section style={{ paddingBottom: 'var(--space-16)' }}>
         <div className="shell stack gap-40">
           {[...bySemester.entries()]
-            .sort((a, b) => a[0] - b[0])
+            .sort((a, b) => (a[0] || 99) - (b[0] || 99))
             .map(([semester, semesterCourses]) => (
               <section key={semester} aria-labelledby={`sem-${semester}`}>
                 <div className="row gap-12" style={{ alignItems: 'baseline' }}>
-                  <h2 id={`sem-${semester}`} style={{ fontSize: 30 }}>Semester {semester}</h2>
+                  <h2 id={`sem-${semester}`} style={{ fontSize: 30 }}>{semester ? `Semester ${semester}` : 'Semester not printed'}</h2>
                   <span className="xs muted">
                     {semesterCourses.length} course{semesterCourses.length === 1 ? '' : 's'}
                   </span>
                 </div>
                 <div className="book-grid" style={{ marginTop: 18 }}>
                   {semesterCourses.map((c) => (
-                    // SQLite rows have a null prototype; client components need plain objects.
-                    <CourseBook key={c.code} course={{ ...c }} from={department.accent_from} to={department.accent_to} />
+                    <CourseBook key={c.code} course={c} from={branch.from} to={branch.to} />
                   ))}
                 </div>
               </section>
@@ -108,7 +92,7 @@ export default async function DepartmentPage({ params }: Params) {
             <div className="empty">
               <p className="empty-title">This shelf is still empty</p>
               <p className="small" style={{ marginTop: 8 }}>
-                No courses have been indexed for {department.name} yet.
+                No papers have been indexed for {branch.name} yet. <Link href="/upload">Upload one</Link>.
               </p>
             </div>
           )}
