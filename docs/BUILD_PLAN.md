@@ -63,6 +63,10 @@ deployed server only serves search and the API (`RUN_WORKER=false`).
 - Ingest the remaining papers; clear the moderation review queue.
 - Scheme JSONs for semesters 3 to 6 so each course links to its papers.
 - Load test the live site; fix what it shows.
+- Diagram questions, small version: flag questions that refer to a figure ("shown below",
+  "Fig.", image or vector drawing in the question's region) with an "Includes diagram" badge;
+  tag questions that ask for one ("draw", "sketch", "neat diagram") as a filter and analytics
+  stat; "View on page N" link to the original PDF.
 
 ### Sat 7 Nov: wrap-up
 - Documentation draft: README, architecture diagram, API reference.
@@ -71,8 +75,9 @@ deployed server only serves search and the API (`RUN_WORKER=false`).
 
 ## If we fall behind, cut in this order
 1. Load test (use the capacity estimate instead).
-2. R2 (link to the original Drive URLs instead of hosting the PDFs).
-3. `/dashboard` merge (hide it instead).
+2. Diagram flags and tags (keep only the "View on page N" link).
+3. R2 (link to the original Drive URLs instead of hosting the PDFs).
+4. `/dashboard` merge (hide it instead).
 
 The insights page, the AI layer and deployment are not cut: they are graded or core to the goal.
 
@@ -80,5 +85,8 @@ The insights page, the AI layer and deployment are not cut: they are graded or c
 and add more after 10 Nov.
 
 ## After submission
+- Diagram questions, full version: at ingestion, render each question's region of the page to
+  an image (stored in R2) and show it under the result; during local ingestion, have the model
+  write a one-line description of the figure and add it to the question's searchable text.
 - 17 Nov: report review (system design, implementation, results and screenshots).
 - 30 Nov: final ZIP, report and PPT.
