@@ -13,6 +13,7 @@ export const NAV_LINKS = [
   { href: '/departments', label: 'Branches' },
   { href: '/papers', label: 'Past papers' },
   { href: '/courses', label: 'Courses' },
+  { href: '/analytics', label: 'Insights' },
   { href: '/assistant', label: 'Assistant' },
   { href: '/dashboard', label: 'Dashboard' },
 ];

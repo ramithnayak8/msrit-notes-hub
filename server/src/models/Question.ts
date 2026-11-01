@@ -47,6 +47,8 @@ const questionSchema = new Schema(
 
 questionSchema.index({ topics: 1 });
 questionSchema.index({ courseCode: 1, year: -1 });
+// The insights page filters by semester and exam type without a course.
+questionSchema.index({ kind: 1, semester: 1, examType: 1 });
 
 export type Question = InferSchemaType<typeof questionSchema>;
 export type QuestionDoc = HydratedDocument<Question>;

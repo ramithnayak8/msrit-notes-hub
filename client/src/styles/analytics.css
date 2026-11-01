@@ -1,0 +1,118 @@
+/* ── Exam insights (/analytics) ───────────────────────────────── */
+
+.insights-filters {
+  display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--space-3);
+  padding-bottom: var(--space-6);
+}
+.insights-field { display: grid; gap: 6px; flex: 1 1 130px; min-width: 0; }
+.insights-field.wide { flex: 3 1 260px; }
+.insights-field select { cursor: pointer; text-overflow: ellipsis; }
+.insights-reset { flex: 0 0 auto; }
+
+.insights-body {
+  display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-5);
+  padding-bottom: var(--space-16);
+  transition: opacity var(--dur-2) ease;
+}
+/* Refetch keeps the frame: the previous slice stays, dimmed, until the new one lands. */
+.insights-body[data-pending] { opacity: 0.55; }
+
+.insights-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-5); align-items: start; }
+@media (min-width: 960px) {
+  /* Topics down the left beside year, unit and exam; the rest in pairs, a lone last card full width. */
+  .insights-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .insights-grid > :first-child { grid-row: span 3; align-self: stretch; }
+  .insights-grid > :nth-child(5):last-child { grid-column: 1 / -1; }
+}
+
+.chart-card { display: grid; gap: var(--space-5); align-content: start; min-width: 0; }
+.chart-head { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--space-3); }
+.chart-title { font-family: var(--font-head); font-size: 24px; font-weight: 600; line-height: 1.15; }
+.chart-toggle { display: flex; gap: 4px; flex-shrink: 0; }
+.chart-toggle .chip { min-height: 30px; padding: 0 11px; font: inherit; font-size: 12px; cursor: pointer; }
+.chart-toggle .chip[aria-pressed='true'] { background: var(--accent-soft); border-color: var(--accent-line); color: var(--ink); }
+.chart-table th, .chart-table td { padding-top: 10px; padding-bottom: 10px; }
+.table th.num, .table td.num { text-align: right; padding-right: 0; padding-left: 12px; }
+
+/* Tooltip, shared: value first and strong, then the label and detail. */
+.chart-tip {
+  position: absolute; z-index: 2; pointer-events: none;
+  display: grid; gap: 2px; min-width: 120px; max-width: 240px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-solid); border: 1px solid var(--rule-strong);
+  box-shadow: var(--shadow-1);
+  font-size: 12px; color: var(--ink-muted); line-height: 1.4; text-align: left;
+  opacity: 0; transform: translateY(4px);
+  transition: opacity var(--dur-1) ease, transform var(--dur-1) ease;
+}
+.chart-tip-value { white-space: nowrap; }
+.chart-tip strong { font-size: 15px; color: var(--ink); }
+.chart-tip-label { color: var(--ink-soft); font-weight: 500; }
+:is(.col-slot, .hbar-row):is(:hover, :focus-visible, :focus-within) .chart-tip { opacity: 1; transform: none; }
+
+/* Columns: bars 24px at most, 4px rounded tops, square on the baseline. */
+.col-chart {
+  list-style: none; margin: 0 0 28px; padding: 22px 0 0;
+  display: grid; grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+  height: 220px;
+  border-bottom: 1px solid var(--rule-strong);
+}
+.col-slot {
+  position: relative;
+  display: flex; flex-direction: column; justify-content: flex-end; align-items: center;
+  min-width: 0; outline-offset: 2px; border-radius: var(--radius-sm);
+}
+.col-bar {
+  width: min(24px, 70%); height: var(--h); min-height: 2px;
+  background: var(--accent);
+  border-radius: 4px 4px 0 0;
+  transition: height var(--dur-3) var(--ease-out), background-color var(--dur-1) ease;
+}
+.col-slot:is(:hover, :focus-visible) .col-bar { background: var(--accent-hover); }
+.col-value { font-size: 12px; color: var(--ink-soft); margin-bottom: 4px; white-space: nowrap; }
+.col-label {
+  position: absolute; top: 100%; margin-top: 6px;
+  font-size: 12px; color: var(--ink-muted); white-space: nowrap;
+  max-width: 100%; overflow: hidden; text-overflow: ellipsis;
+}
+/* Just above the hovered bar, never above the top of the plot. */
+.col-slot .chart-tip { bottom: min(calc(var(--h) + 22px), calc(100% - 24px)); left: 50%; translate: -50% 0; }
+.col-slot:first-child .chart-tip { left: 0; translate: 0 0; }
+.col-slot:last-child .chart-tip { left: auto; right: 0; translate: 0 0; }
+/* Many columns on a phone: smaller labels and values rather than hiding any. */
+@media (max-width: 560px) {
+  .col-chart[data-dense] :is(.col-label, .col-value) { font-size: 10px; letter-spacing: -0.02em; }
+}
+
+/* Horizontal bars: label, then a track with the value at the bar's tip. (hbar-*, since .bar-* is the meter in components.css.) */
+.hbar-list { display: grid; gap: 12px; list-style: none; padding: 0; margin: 0; }
+.hbar-row { position: relative; display: grid; gap: 5px; outline-offset: 3px; border-radius: var(--radius-sm); }
+.hbar-label { font-size: 14px; color: var(--ink); line-height: 1.35; overflow-wrap: anywhere; justify-self: start; }
+a.hbar-label:hover { color: var(--accent); }
+.hbar-track { display: flex; align-items: center; gap: 8px; }
+.hbar-fill {
+  height: 12px; min-width: 2px;
+  background: var(--accent);
+  border-radius: 0 4px 4px 0;
+  transition: width var(--dur-3) var(--ease-out), background-color var(--dur-1) ease;
+}
+.hbar-row:is(:hover, :focus-visible, :focus-within) .hbar-fill { background: var(--accent-hover); }
+.hbar-value { font-size: 12px; color: var(--ink-soft); flex-shrink: 0; }
+.hbar-row .chart-tip { top: calc(100% + 4px); left: 0; }
+
+.takeaways { margin: 10px 0 0; padding-left: 1.1em; display: grid; gap: 6px; color: var(--ink-soft); font-size: 15px; line-height: 1.5; }
+
+.repeats-table td { vertical-align: top; }
+.repeat-text {
+  color: var(--ink); font-family: var(--font-read); font-size: 15px; line-height: 1.45;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+}
+.repeat-years { white-space: nowrap; }
+.repeats-table td:nth-child(2) { min-width: 150px; }
+@media (min-width: 680px) { .repeat-text { min-width: 260px; } }
+.repeat-text:hover { color: var(--accent); }
+
+@media (prefers-reduced-motion: reduce) {
+  .col-bar, .hbar-fill, .chart-tip, .insights-body { transition: none; }
+}

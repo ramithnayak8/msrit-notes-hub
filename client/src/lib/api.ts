@@ -132,3 +132,26 @@ export type SchemeCourse = {
 };
 
 export type TopicStat = { topic: string; label: string; questions: number; papers: number; totalMarks: number; years: number[] };
+
+export type InsightBucket = { key: string | number; questions: number; papers: number; marks: number };
+
+export type InsightFilters = { semester?: number; course?: string; yearFrom?: number; yearTo?: number; examType?: string };
+
+export type Insights = {
+  filters: InsightFilters;
+  options: {
+    courses: { code: string; title: string; semesters: number[]; questions: number }[];
+    years: number[];
+    semesters: number[];
+    examTypes: string[];
+  };
+  kpis: { questions: number; papers: number; courses: number; topics: number; totalMarks: number; yearRange: { min: number; max: number } | null };
+  byYear: InsightBucket[];
+  byExamType: InsightBucket[];
+  byUnit: InsightBucket[];
+  byMarks: InsightBucket[];
+  byBloom: InsightBucket[];
+  topics: TopicStat[];
+  recurringCount: number;
+  recurring: { text: string; courseCode: string | null; courseTitle: string | null; papers: number; questions: number; years: number[] }[];
+};

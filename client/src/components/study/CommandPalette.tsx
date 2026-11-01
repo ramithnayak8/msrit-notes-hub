@@ -110,6 +110,7 @@ export function CommandPalette() {
       { id: 'p-papers', group: 'Go to', label: 'Past papers library', icon: 'archive', run: () => go('/papers') },
       { id: 'p-courses', group: 'Go to', label: 'Courses in the current scheme', icon: 'diff', run: () => go('/courses') },
       { id: 'p-upload', group: 'Go to', label: 'Upload a paper', icon: 'file', run: () => go('/upload') },
+      { id: 'p-insights', group: 'Go to', label: 'Exam insights: topics, marks and repeats', icon: 'layers', run: () => go('/analytics') },
       { id: 'p-assistant', group: 'Go to', label: 'Study assistant', icon: 'message', run: () => go('/assistant') },
       { id: 'p-shelf', group: 'Go to', label: 'My shelf: saved questions and streak', icon: 'bookmark', run: () => go('/shelf') },
       { id: 'p-home', group: 'Go to', label: 'Home', icon: 'home', run: () => go('/') },
