@@ -23,6 +23,11 @@ describe('parseQuery', () => {
     expect(p.text).toBe('hashing');
   });
 
+  it('reads an acronym or branch with punctuation stuck to it', () => {
+    expect(parseQuery('what should I revise for DAA?', courses, now).filters.courseCodes?.sort()).toEqual(['CS43', 'IS43']);
+    expect(parseQuery('heap questions for IS?', courses, now).filters.branch).toBe('ISE');
+  });
+
   it('maps a course acronym to every course with that title', () => {
     const p = parseQuery('DAA greedy algorithms', courses, now);
     expect(p.filters.courseCodes?.sort()).toEqual(['CS43', 'IS43']);

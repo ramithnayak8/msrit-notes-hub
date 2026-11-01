@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useTransition, type ReactNode } from 'react';
 import { Icon } from '@/components/ui/Icon';
 import type { InsightBucket, Insights } from '@/lib/api';
+import { AskPanel } from './AskPanel';
 import { BarList, ChartCard, ColumnChart, type Datum } from './Charts';
 
 const BLOOM: Record<string, string> = { L1: 'Remember', L2: 'Understand', L3: 'Apply', L4: 'Analyse', L5: 'Evaluate', L6: 'Create' };
@@ -42,6 +43,15 @@ export function InsightsView({ data }: { data: Insights }) {
   const filtered = !!(semester || course || from || to || exam);
   const { kpis } = data;
   const years = fillYears(data.byYear);
+  const scopeLabel =
+    [
+      selectedCourse ? selectedCourse.title : applied.course,
+      semester && `semester ${semester}`,
+      exam,
+      from && to ? (from === to ? from : `${from}–${to}`) : from ? `${from} on` : to ? `up to ${to}` : '',
+    ]
+      .filter(Boolean)
+      .join(', ') || 'the whole archive';
   const reset = () => go('');
 
   return (
@@ -101,6 +111,12 @@ export function InsightsView({ data }: { data: Insights }) {
             </div>
 
             <Takeaways data={data} />
+
+            <AskPanel
+              key={JSON.stringify(applied)}
+              filters={{ semester: applied.semester, course: applied.course, yearFrom: applied.yearFrom, yearTo: applied.yearTo, examType: applied.examType }}
+              scope={scopeLabel}
+            />
 
             {selectedCourse && (
               <div className="row gap-10 wrap">

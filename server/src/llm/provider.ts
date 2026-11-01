@@ -9,8 +9,9 @@ import { config } from '../config.js';
 import { logger } from '../lib/logger.js';
 
 /**
- * The language model is only ever called during ingestion (segmentation
- * fallback, topic tagging), never while answering a search. Every call asks
+ * The language model is called during ingestion (segmentation fallback,
+ * topic tagging) and, through API keys only, to word the study assistant's
+ * answers from retrieved data. Search itself never calls it. Every call asks
  * for JSON matching a schema and the reply is validated with Zod, so a
  * malformed answer is an error we can retry, not bad data in the database.
  */
@@ -20,6 +21,8 @@ export type JsonRequest<T> = {
   schema: z.ZodType<T>;
   /** Short label for logs and usage counts. */
   task: string;
+  /** For calls a person is waiting on: a faster model (Gemini only) and a hard time limit. */
+  live?: { model?: string; timeoutMs: number };
 };
 
 interface Provider {
@@ -33,9 +36,11 @@ class GeminiProvider implements Provider {
 
   async generateJson<T>(req: JsonRequest<T>): Promise<T> {
     const res = await this.client.models.generateContent({
-      model: config.GEMINI_MODEL,
+      model: req.live?.model ?? config.GEMINI_MODEL,
       contents: req.prompt,
       config: {
+        // Speed comes from the model choice: thinking options differ between Gemini generations, and a wrong one is a 400.
+        ...(req.live && { abortSignal: AbortSignal.timeout(req.live.timeoutMs) }),
         systemInstruction: req.system,
         responseMimeType: 'application/json',
         // Constrained decoding: the model can only produce JSON of this shape.
@@ -53,15 +58,18 @@ class GroqProvider implements Provider {
 
   async generateJson<T>(req: JsonRequest<T>): Promise<T> {
     const schema = JSON.stringify(z.toJSONSchema(req.schema, { target: 'draft-7' }));
-    const res = await this.client.chat.completions.create({
-      model: config.GROQ_MODEL,
-      temperature: 0,
-      response_format: { type: 'json_object' },
-      messages: [
-        { role: 'system', content: `${req.system}\n\nReply with JSON only, matching this JSON Schema:\n${schema}` },
-        { role: 'user', content: req.prompt },
-      ],
-    });
+    const res = await this.client.chat.completions.create(
+      {
+        model: config.GROQ_MODEL,
+        temperature: 0,
+        response_format: { type: 'json_object' },
+        messages: [
+          { role: 'system', content: `${req.system}\n\nReply with JSON only, matching this JSON Schema:\n${schema}` },
+          { role: 'user', content: req.prompt },
+        ],
+      },
+      req.live && { timeout: req.live.timeoutMs, maxRetries: 0 },
+    );
     return req.schema.parse(JSON.parse(res.choices[0]?.message.content ?? ''));
   }
 }
@@ -122,6 +130,9 @@ const providers: Provider[] = [
 ];
 
 export const llmAvailable = () => providers.length > 0;
+/** API-key providers only: what may answer students at request time (Claude Code is a personal login, for local ingestion only). */
+const apiProviders = providers.filter((p) => p.name !== 'claude-code');
+export const answerLlmAvailable = () => apiProviders.length > 0;
 export const llmProviders = () => providers.map((p) => p.name);
 
 export class LlmUnavailableError extends Error {}
@@ -129,12 +140,17 @@ export class LlmUnavailableError extends Error {}
 /** Free tiers often answer 503 "high demand" or 429; those are worth waiting out. */
 const ATTEMPTS = 4;
 
-/** Try each configured provider in order, retrying with growing waits (2s, 4s, 8s) on errors or a bad answer. */
-export async function generateJson<T>(req: JsonRequest<T>): Promise<{ data: T; provider: string }> {
-  if (!providers.length) throw new LlmUnavailableError('No language model API key configured');
+/**
+ * Try each configured provider in order, retrying with growing waits (2s, 4s, 8s) on errors or a bad answer.
+ * `apiOnly` skips Claude Code; `attempts` caps retries for calls a person is waiting on.
+ */
+export async function generateJson<T>(req: JsonRequest<T>, opts: { apiOnly?: boolean; attempts?: number } = {}): Promise<{ data: T; provider: string }> {
+  const chain = opts.apiOnly ? apiProviders : providers;
+  const attempts = opts.attempts ?? ATTEMPTS;
+  if (!chain.length) throw new LlmUnavailableError('No language model API key configured');
   let lastErr: unknown;
-  for (const p of providers) {
-    for (let attempt = 1; attempt <= ATTEMPTS; attempt++) {
+  for (const p of chain) {
+    for (let attempt = 1; attempt <= attempts; attempt++) {
       const t = Date.now();
       try {
         const data = await p.generateJson(req);
@@ -143,7 +159,7 @@ export async function generateJson<T>(req: JsonRequest<T>): Promise<{ data: T; p
       } catch (err) {
         lastErr = err;
         logger.warn({ provider: p.name, task: req.task, attempt, err: (err as Error).message?.slice(0, 300) }, 'LLM call failed');
-        if (attempt < ATTEMPTS) await new Promise((r) => setTimeout(r, 1000 * 2 ** attempt));
+        if (attempt < attempts) await new Promise((r) => setTimeout(r, 1000 * 2 ** attempt));
       }
     }
   }

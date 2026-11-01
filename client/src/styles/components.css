@@ -502,3 +502,15 @@
   outline: 2px solid var(--accent);
   outline-offset: 1px;
 }
+
+/* Assistant answers: how the answer was produced */
+.reply-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  margin-bottom: 10px; padding: 3px 10px;
+  border-radius: var(--radius-pill);
+  background: var(--accent-soft); border: 1px solid var(--accent-line);
+  font-size: 12px; font-weight: 500; color: var(--ink-soft);
+}
+.reply-badge svg { color: var(--accent); }
+.reply-notice { display: flex; gap: 8px; align-items: flex-start; margin-top: 14px; color: var(--ink-soft); }
+.reply-notice svg { flex-shrink: 0; margin-top: 2px; color: var(--accent); }

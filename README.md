@@ -56,6 +56,13 @@ own machine only, `USE_CLAUDE_CODE=true` to run Claude Code headless on your own
 Without any, everything else works and tagging falls back to nearest-topic matching on
 embeddings. Search never calls a model.
 
+The study assistant (`/assistant`, and "Ask about this view" on `/analytics`) always retrieves
+first: the closest questions, topic counts and the statistics for the slice. For a signed-in
+student with a Gemini or Groq key configured, a fast model (`ASSISTANT_MODEL`) then writes the
+answer from that data only, citing the questions it used; signed-out visitors, students over
+the daily cap and any model failure get the retrieval answer instead. Written answers are cached
+for 3 days and shared once two students have asked the same thing.
+
 ## How it works
 
 ### Ingestion (once per uploaded document, in a background worker)
@@ -99,10 +106,11 @@ mode and reports Recall@10 and MRR.
 | GET | `/api/documents` · `/:id` · `/:id/file` · `/:id/questions` | Documents, status, original file, extracted questions |
 | POST/DELETE | `/api/documents/:id/reprocess` · `/api/documents/:id` | Re-run the pipeline, remove (moderator) |
 | GET | `/api/search?q=&mode=hybrid\|vector\|keyword` | Search with parsed filters |
+| GET | `/api/analytics/overview?semester=&course=&yearFrom=&yearTo=&examType=` | Everything the exam-insights page shows for one slice |
 | GET | `/api/analytics/topics` · `/distribution?by=` · `/recurring` · `/stats` | Topic frequency, distributions, repeated questions |
 | GET | `/api/courses?semester=5` | Current scheme, each course linked to past papers on the same subject |
 | GET | `/api/branches` · `/api/catalog?branch=` · `/api/course/:code` | Browsing by branch and course |
-| POST | `/api/assistant` | Retrieval-only study assistant (topic counts or closest questions) |
+| POST | `/api/assistant` | Study assistant: `{question, filters?}`; retrieval, then a cited AI answer for signed-in students |
 | GET/POST/PATCH | `/api/topics` | Vocabulary; approve, rename or merge topics (moderator) |
 | GET/POST | `/api/review` · `/api/review/:id/resolve` | Moderation queue |
 | PATCH | `/api/questions/:id` | Correct a question; it is re-embedded (moderator) |

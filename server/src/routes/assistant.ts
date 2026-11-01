@@ -1,11 +1,18 @@
 import { Router } from 'express';
 import { rateLimit } from 'express-rate-limit';
 import { z } from 'zod';
+import { answerSchema, buildContext, cacheKey, describeScope, reserve, SYSTEM, tidyAnswer, usedToday, type Quota, type Source } from '../assistant/grounded.js';
+import { config } from '../config.js';
+import { logger } from '../lib/logger.js';
+import { answerLlmAvailable, generateJson } from '../llm/provider.js';
+import { optionalAuth } from '../middleware/auth.js';
+import { AssistantAnswerModel } from '../models/AssistantAnswer.js';
 import { QuestionModel } from '../models/Question.js';
 import { TopicModel } from '../models/Topic.js';
 import { courseCatalog } from '../search/catalog.js';
 import { parseQuery, type SearchFilters } from '../search/parseQuery.js';
-import { searchQuestions, type SearchHit } from '../search/search.js';
+import { searchQuestions, type SearchHit, type SearchResponse } from '../search/search.js';
+import { cached, overview, parseLenient, type AnalyticsFilters } from './analytics.js';
 
 /**
  * The study assistant, answered from retrieval alone: no language model runs
@@ -16,7 +23,6 @@ import { searchQuestions, type SearchHit } from '../search/search.js';
  */
 export const assistantRouter = Router();
 
-type Source = { kind: 'question' | 'topic'; label: string; detail: string };
 
 const REVISION = /\b(revise|revision|prepare|important|imp|focus|priorit|repeat|recurring|frequent|most (asked|examined|common)|common|weightage|which topics)\b/i;
 
@@ -32,8 +38,15 @@ function matchFilter(f: SearchFilters) {
   return m;
 }
 
-async function revisionAnswer(q: string) {
+/** Filters from the page (the insights view) override what was read from the sentence. */
+const toSearchFilters = (f: AnalyticsFilters): SearchFilters =>
+  Object.fromEntries(
+    Object.entries({ yearFrom: f.yearFrom, yearTo: f.yearTo, semester: f.semester, examType: f.examType, branch: f.branch, courseCodes: f.course?.split(',') }).filter(([, v]) => v !== undefined),
+  );
+
+async function revisionAnswer(q: string, explicit: SearchFilters, scopeNote?: string) {
   const parsed = parseQuery(q, courseCatalog());
+  Object.assign(parsed.filters, explicit);
   const match = matchFilter(parsed.filters);
   const rows = await QuestionModel.aggregate<{ _id: string; papers: number; questions: number; years: number[]; marks: number }>([
     { $match: match },
@@ -47,7 +60,7 @@ async function revisionAnswer(q: string) {
   if (!rows.length) return null;
 
   const labels = new Map((await TopicModel.find({ name: { $in: rows.map((r) => r._id) } }).select('name label').lean()).map((t) => [t.name, t.label]));
-  const scope = parsed.understood.length ? parsed.understood.join(', ') : 'the whole archive';
+  const scope = scopeNote ?? (parsed.understood.length ? parsed.understood.join(', ') : 'the whole archive');
   const lines = rows.map((r) => {
     const years = r.years.filter(Boolean).sort();
     return `• **${labels.get(r._id) ?? r._id}**: in ${r.papers} of ${paperCount} papers (${years.join(', ')}), ${r.questions} question${r.questions === 1 ? '' : 's'}, ${r.marks} marks in total`;
@@ -63,10 +76,10 @@ async function revisionAnswer(q: string) {
   return { answer, sources, retrieved: rows.length };
 }
 
-async function questionAnswer(q: string) {
-  const { hits, query, total } = await searchQuestions({ q, limit: 6 });
+/** The closest questions, from a search the caller already ran (the same results feed the model). */
+function questionAnswer({ hits, query, total }: SearchResponse, scopeNote?: string) {
   if (!hits.length) return null;
-  const scope = query.understood.length ? ` (${query.understood.join(', ')})` : '';
+  const scope = scopeNote ? ` (${scopeNote})` : query.understood.length ? ` (${query.understood.join(', ')})` : '';
   const repeated = hits.filter((h) => h.recurrence.count > 1);
   const lines = hits.map((h) => {
     const marks = h.marks ? `, ${h.marks} marks` : '';
@@ -83,15 +96,109 @@ async function questionAnswer(q: string) {
   return { answer, sources, retrieved: hits.length };
 }
 
-assistantRouter.post('/', rateLimit({ windowMs: 60_000, limit: 30 }), async (req, res) => {
+const body = z.object({
+  question: z.string().trim().min(2).max(400),
+  // The insights page sends the slice the student is looking at.
+  filters: z.record(z.string(), z.unknown()).optional(),
+});
+
+type Reply = {
+  answer: string;
+  sources: Source[];
+  mode: 'ai' | 'retrieval';
+  provider?: string;
+  cached?: boolean;
+  /** Why an AI answer wasn't written: not signed in, daily limit, site budget, or the model failed. */
+  notice?: 'sign-in' | 'user-limit' | 'global-limit' | 'unavailable';
+  usage?: { used: number; limit: number };
+  retrieved: number;
+  tookMs: number;
+};
+
+/**
+ * Answers in two steps. Retrieval always runs: the closest questions, topic
+ * counts, and the statistics for the slice. A signed-in student under the daily
+ * cap then gets the answer written by the model from that data alone, with
+ * citations; anyone else, and any failure on the way, gets the retrieval answer.
+ * Written answers are cached per question and slice. A student always gets
+ * their own cached answer back; other people (signed out included) only once
+ * two different students have asked it, so one account can't push a crafted
+ * answer to everyone through a shared link.
+ */
+assistantRouter.post('/', rateLimit({ windowMs: 60_000, limit: 30 }), optionalAuth, async (req, res) => {
   const t = Date.now();
-  const { question } = z.object({ question: z.string().trim().min(2).max(400) }).parse(req.body);
-  const result = (REVISION.test(question) ? await revisionAnswer(question) : null) ?? (await questionAnswer(question));
-  res.json({
-    answer: result?.answer ?? 'Nothing in the archive matches that yet. Try naming a topic ("deadlock", "agile") or a course ("ML", "CS43").',
-    sources: result?.sources ?? [],
-    mode: 'retrieval',
-    retrieved: result?.retrieved ?? 0,
-    tookMs: Date.now() - t,
-  });
+  const { question, filters: rawFilters } = body.parse(req.body);
+  const f = parseLenient(rawFilters ?? {}, { limit: 10 });
+  // Page-scoped only when the page sent at least one usable filter; `{}` is the whole archive, read from the question.
+  const pageScoped = Object.keys(f).some((k) => k !== 'limit');
+  const explicit = toSearchFilters(f);
+  const parsed = parseQuery(question, courseCatalog());
+  Object.assign(parsed.filters, explicit);
+  const qf = parsed.filters;
+  // The slice the statistics cover: the page's filters, or what the question itself names.
+  const slice: AnalyticsFilters = pageScoped
+    ? f
+    : { limit: 10, course: qf.courseCodes?.length ? [...qf.courseCodes].sort().join(',') : undefined, branch: qf.branch, semester: qf.semester, yearFrom: qf.yearFrom, yearTo: qf.yearTo, examType: qf.examType };
+  const courseTitle = f.course ? courseCatalog().find((c) => c.code === f.course)?.title : undefined;
+  const scope = pageScoped ? describeScope(f, courseTitle) : parsed.understood.length ? parsed.understood.join(', ') : 'the whole archive';
+  const done = (r: Omit<Reply, 'tookMs'>) => res.json({ ...r, tookMs: Date.now() - t } satisfies Reply);
+
+  const useLlm = config.ASSISTANT_LLM && answerLlmAvailable() && config.ASSISTANT_USER_DAILY > 0 && config.ASSISTANT_GLOBAL_DAILY > 0;
+  const key = cacheKey(question, slice, pageScoped);
+  if (useLlm) {
+    const hit = await AssistantAnswerModel.findOne({ key }).lean().catch((err) => void logger.warn({ err: err.message }, 'assistant cache read failed'));
+    const mine = !!req.user && !!hit?.askers?.includes(req.user.id);
+    if (hit && (mine || (hit.askers?.length ?? 0) >= 2)) {
+      return done({ answer: hit.answer, sources: hit.sources as Source[], mode: 'ai', provider: hit.provider ?? undefined, cached: true, retrieved: hit.retrieved });
+    }
+  }
+
+  // Retrieval: the answer students get without the model, and the data the model writes from. One search serves both.
+  const search = await searchQuestions({ q: question, limit: 6, filters: explicit });
+  const scopeNote = pageScoped ? scope : undefined;
+  const retrieval = ((REVISION.test(question) ? await revisionAnswer(question, explicit, scopeNote) : null) ?? questionAnswer(search, scopeNote)) ?? {
+    answer: 'Nothing in the archive matches that yet. Try naming a topic ("deadlock", "agile") or a course ("ML", "CS43").',
+    sources: [],
+    retrieved: 0,
+  };
+  const plain = (notice?: Reply['notice'], usage?: Reply['usage']) =>
+    done({ answer: retrieval.answer, sources: retrieval.sources as Source[], mode: 'retrieval', notice, usage, retrieved: retrieval.retrieved });
+
+  if (!useLlm) return plain();
+  if (!req.user) return plain('sign-in');
+  const userId = req.user.id;
+  const usage = () => usedToday(userId).catch(() => undefined);
+
+  let quota: Quota | undefined;
+  try {
+    const stats = await cached(`overview:${JSON.stringify(slice)}`, () => overview(slice));
+    const { context, sources, questionCount } = buildContext(scope, stats, search.query.text ? search.hits : [], cite);
+    if (!stats.kpis.questions && !questionCount) return plain();
+
+    quota = await reserve(userId);
+    if (!quota.ok) return plain(quota.reason === 'user' ? 'user-limit' : 'global-limit', await usage());
+    const { data, provider } = await generateJson(
+      {
+        system: SYSTEM,
+        prompt: `${context}\n\nSTUDENT'S QUESTION: ${question}`,
+        schema: answerSchema,
+        task: 'assistant',
+        live: { model: config.ASSISTANT_MODEL, timeoutMs: config.ASSISTANT_TIMEOUT_MS },
+      },
+      { apiOnly: true, attempts: 1 },
+    );
+    quota = undefined; // spent: from here on nothing refunds it
+    const answer = tidyAnswer(data.answer, questionCount);
+    // The student has the answer either way; a failed cache write only costs a future model call.
+    void AssistantAnswerModel.updateOne(
+      { key },
+      { $set: { question, answer, sources, retrieved: questionCount, provider, createdAt: new Date() }, $addToSet: { askers: userId } },
+      { upsert: true },
+    ).catch((err) => logger.warn({ err: err.message }, 'assistant cache write failed'));
+    return done({ answer, sources, mode: 'ai', provider, retrieved: questionCount, usage: await usage() });
+  } catch (err) {
+    if (quota?.ok) await quota.release().catch(() => undefined);
+    logger.warn({ err: (err as Error).message?.slice(0, 300) }, 'assistant answer fell back to retrieval');
+    return plain('unavailable');
+  }
 });

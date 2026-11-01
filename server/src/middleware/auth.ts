@@ -17,16 +17,16 @@ function bearer(req: Request) {
   return h?.startsWith('Bearer ') ? h.slice(7) : undefined;
 }
 
-/** Attach the user if a valid token is present; never rejects. */
+/**
+ * Attach the user if a token is present; no token means anonymous. An expired
+ * or invalid token is a 401, not anonymous, so the client refreshes and retries
+ * instead of silently losing what signed-in users get.
+ */
 export function optionalAuth(req: Request, _res: Response, next: NextFunction) {
   const token = bearer(req);
   if (token) {
-    try {
-      const c = verifyAccessToken(token);
-      req.user = { id: c.sub, role: c.role };
-    } catch {
-      /* treated as anonymous */
-    }
+    const c = verifyAccessToken(token);
+    req.user = { id: c.sub, role: c.role };
   }
   next();
 }

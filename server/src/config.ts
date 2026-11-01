@@ -28,6 +28,15 @@ const schema = z.object({
   CLAUDE_CODE_MODEL: z.string().default('sonnet'),
   CLAUDE_CODE_BIN: z.string().optional(),
   RUN_WORKER: bool.default(true),
+  // The study assistant writes its answers with Gemini/Groq (never Claude Code) from retrieved archive data.
+  // Off: answers are composed from retrieval alone, as before.
+  ASSISTANT_LLM: bool.default(true),
+  // A fast model, since a student is waiting (about 1s for Flash-Lite against 30s+ for Flash). Gemini only; Groq uses GROQ_MODEL.
+  ASSISTANT_MODEL: z.string().default('gemini-flash-lite-latest'),
+  ASSISTANT_TIMEOUT_MS: z.coerce.number().int().min(1000).default(12_000),
+  // AI answers per signed-in student per day, and for the whole site per day (keep under the free tier).
+  ASSISTANT_USER_DAILY: z.coerce.number().int().min(0).default(20),
+  ASSISTANT_GLOBAL_DAILY: z.coerce.number().int().min(0).default(500),
 });
 
 // Empty strings in .env mean "not set".

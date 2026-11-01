@@ -142,7 +142,8 @@ export function parseQuery(raw: string, courses: Course[] = [], now = new Date()
     }
   }
   if (!codes.size) {
-    for (const token of q.split(/\s+/).filter((t) => /^[A-Za-z]{2,6}$/.test(t))) {
+    // Split on punctuation too, so "for DAA?" still finds DAA.
+    for (const token of q.split(/[\s?!.,;:]+/).filter((t) => /^[A-Za-z]{2,6}$/.test(t))) {
       const matches = courses.filter((c) => acronym(c.title).length >= 2 && acronym(c.title) === token.toUpperCase());
       // Only uppercase tokens count as acronyms ("DAA", "ML"), so ordinary words like "ds" in text don't.
       const target = matches.flatMap(filterCodesOf);
@@ -160,13 +161,13 @@ export function parseQuery(raw: string, courses: Course[] = [], now = new Date()
   }
 
   // ── Branch ──
-  for (const token of q.split(/\s+/)) {
+  for (const token of q.split(/[\s?!.,;:]+/)) {
     const b = BRANCHES[token.toLowerCase()];
     // Two-letter forms are ordinary words too ("is", "me"), so they only count in capitals.
     if (b && (token.length > 2 || token === token.toUpperCase())) {
       filters.branch = b;
       understood.push(`${b} branch`);
-      q = q.replace(new RegExp(`(^|\\s)${token.replace(/[&]/g, '\\&')}(?=\\s|$)`), ' ');
+      q = q.replace(new RegExp(`(^|\\s)${token.replace(/[&]/g, '\\&')}(?=[\\s?!.,;:]|$)`), ' ');
       break;
     }
   }

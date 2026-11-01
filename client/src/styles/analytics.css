@@ -116,3 +116,10 @@ a.hbar-label:hover { color: var(--accent); }
 @media (prefers-reduced-motion: reduce) {
   .col-bar, .hbar-fill, .chart-tip, .insights-body { transition: none; }
 }
+
+/* Ask about this view */
+.ask-panel .chart-title { display: inline-flex; align-items: center; gap: 8px; }
+.ask-panel .chart-title svg { color: var(--accent); }
+.ask-panel .example:disabled { opacity: 0.55; cursor: default; }
+.ask-answer { display: flex; flex-direction: column; margin-top: var(--space-5); padding-top: var(--space-5); border-top: 1px solid var(--rule); }
+.ask-answer > div { max-width: 760px; }
