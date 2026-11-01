@@ -4,7 +4,7 @@ import multer from 'multer';
 import { isValidObjectId, Types } from 'mongoose';
 import { z } from 'zod';
 import { filesBucket } from '../db.js';
-import { badRequest, notFound } from '../lib/errors.js';
+import { badRequest, conflict, notFound } from '../lib/errors.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
 import { JobModel } from '../models/Job.js';
 import { QuestionModel } from '../models/Question.js';
@@ -78,10 +78,21 @@ documentsRouter.get('/:id', async (req, res) => {
   res.json({ document: doc, job, openReviews });
 });
 
-/** The original file, streamed from GridFS. */
+/** Only web links are followed: a redirect to any other scheme could run script. */
+export const isWebUrl = (u?: string | null): u is string => !!u && /^https?:\/\//i.test(u);
+
+/**
+ * The original file: streamed from GridFS while a copy is stored, otherwise a
+ * redirect to where the paper was published (papers imported with a source
+ * link are pruned after ingestion to keep the database within the free tier).
+ */
 documentsRouter.get('/:id/file', async (req, res) => {
   const doc = await SourceDocumentModel.findById(objectId(req.params.id)).lean();
   if (!doc) throw notFound('Document');
+  if (doc.fileStored === false) {
+    if (isWebUrl(doc.sourceUrl)) return res.redirect(302, doc.sourceUrl);
+    throw notFound('Original file');
+  }
   res.setHeader('Content-Type', doc.mimeType ?? 'application/octet-stream');
   res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(doc.fileName ?? 'paper.pdf')}"`);
   await new Promise<void>((resolve, reject) => {
@@ -121,7 +132,9 @@ documentsRouter.patch('/:id', requireAuth, requireRole('moderator'), async (req,
 /** Run the pipeline again from scratch, e.g. after vocabulary changes or a parser fix. */
 documentsRouter.post('/:id/reprocess', requireAuth, requireRole('moderator'), async (req, res) => {
   const id = objectId(req.params.id);
-  if (!(await SourceDocumentModel.exists({ _id: id }))) throw notFound('Document');
+  const doc = await SourceDocumentModel.findById(id).select('fileStored').lean();
+  if (!doc) throw notFound('Document');
+  if (doc.fileStored === false) throw conflict('The original file is no longer stored here; import the paper again to reprocess it');
   await SourceDocumentModel.updateOne({ _id: id }, { $set: { status: 'queued' }, $unset: { error: 1 } });
   const job = await JobModel.create({ documentId: id });
   res.status(202).json({ jobId: job.id });

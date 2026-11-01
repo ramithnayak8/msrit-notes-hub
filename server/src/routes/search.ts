@@ -1,6 +1,7 @@
 import { Router } from 'express';
-import { rateLimit } from 'express-rate-limit';
 import { z } from 'zod';
+import { cached } from '../lib/cache.js';
+import { searchLimit } from '../middleware/limits.js';
 import { searchQuestions } from '../search/search.js';
 
 export const searchRouter = Router();
@@ -25,9 +26,12 @@ const searchQuery = z.object({
 });
 
 /** GET /api/search?q=deadlock avoidance last 3 years — no language model involved. */
-searchRouter.get('/', rateLimit({ windowMs: 60_000, limit: 120 }), async (req, res) => {
+searchRouter.get('/', searchLimit, async (req, res) => {
+  const t = Date.now();
   const p = searchQuery.parse(req.query);
-  const result = await searchQuestions({
+  // Popular searches repeat across students in exam week; one minute of caching skips the embedding and both searches.
+  const key = `search:${JSON.stringify({ ...p, q: p.q.toLowerCase().replace(/\s+/g, ' ') })}`;
+  const result = await cached(key, () => searchQuestions({
     q: p.q,
     mode: p.mode,
     limit: p.limit,
@@ -42,6 +46,6 @@ searchRouter.get('/', rateLimit({ windowMs: 60_000, limit: 120 }), async (req, r
       examType: p.examType,
       kind: p.kind,
     },
-  });
-  res.json(result);
+  }));
+  res.json({ ...result, tookMs: Date.now() - t });
 });

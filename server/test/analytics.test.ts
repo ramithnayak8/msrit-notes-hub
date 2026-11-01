@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import { cached, filters, match, parseLenient } from '../src/routes/analytics.js';
+import { cached } from '../src/lib/cache.js';
+import { filters, match, parseLenient } from '../src/routes/analytics.js';
 
 const parse = (q: Record<string, string>) => filters.parse(q);
 

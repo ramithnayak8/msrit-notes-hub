@@ -115,6 +115,28 @@ mode and reports Recall@10 and MRR.
 | GET/POST | `/api/review` · `/api/review/:id/resolve` | Moderation queue |
 | PATCH | `/api/questions/:id` | Correct a question; it is re-embedded (moderator) |
 
+## Deploying the API
+
+```bash
+docker build -f server/Dockerfile -t conceptquery-api .      # from the repo root
+docker run --env-file server/.env -e NODE_ENV=production -p 4000:4000 conceptquery-api
+```
+
+The image (x64 or ARM) serves the API only, with the embedding model baked in; it uses about
+200 MB of memory. Ingestion runs on a developer machine against the same database
+(`RUN_WORKER=false` in the image). Set `TRUST_PROXY` to the number of proxies in front of it.
+
+Papers imported with a source link (the `url` in `manifest.json`) don't need their PDF kept in
+the database once ingested. After a batch, free the space and keep within the free tier:
+
+```bash
+npm run files:prune -w server -- --dry-run   # what would be freed
+npm run files:prune -w server                # "Open PDF" then goes to the source link
+```
+
+Rate limits count per signed-in student where possible, since campus Wi-Fi puts many students
+behind one IP (`server/src/middleware/limits.ts`).
+
 ## Past-papers library
 
 ```bash

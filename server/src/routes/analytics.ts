@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import type { PipelineStage } from 'mongoose';
 import { z } from 'zod';
+import { cached } from '../lib/cache.js';
 import { QuestionModel } from '../models/Question.js';
 import { SourceDocumentModel } from '../models/SourceDocument.js';
 import { TopicModel } from '../models/Topic.js';
@@ -45,30 +46,6 @@ export function match(f: AnalyticsFilters): PipelineStage.Match {
   if (f.semester) m.semester = f.semester;
   if (f.examType) m.examType = f.examType;
   return { $match: m };
-}
-
-/**
- * A small time-boxed cache for the dashboard: the corpus only changes when a
- * paper is ingested, and in exam week many students open the same course.
- * It holds the promise, so concurrent requests for an expired key share one
- * aggregation, and a hit moves the key to the back (least recently used goes first).
- */
-const CACHE_MS = 60_000;
-const CACHE_MAX = 200;
-const cache = new Map<string, { at: number; value: Promise<unknown> }>();
-
-export function cached<T>(key: string, compute: () => Promise<T>): Promise<T> {
-  const hit = cache.get(key);
-  cache.delete(key);
-  if (hit && Date.now() - hit.at < CACHE_MS) {
-    cache.set(key, hit);
-    return hit.value as Promise<T>;
-  }
-  while (cache.size >= CACHE_MAX) cache.delete(cache.keys().next().value!);
-  const value = compute();
-  cache.set(key, { at: Date.now(), value });
-  value.catch(() => cache.get(key)?.value === value && cache.delete(key)); // never cache a failure
-  return value;
 }
 
 async function topicLabels(names: string[]) {

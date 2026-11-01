@@ -1,0 +1,11 @@
+**/node_modules
+**/.next
+**/dist
+**/.env
+**/.env.*
+!**/.env.example
+server/.model-cache
+client/data/*.db*
+samples
+.git
+*.log

@@ -1,18 +1,19 @@
 import { Router } from 'express';
-import { rateLimit } from 'express-rate-limit';
 import { z } from 'zod';
 import { answerSchema, buildContext, cacheKey, describeScope, reserve, SYSTEM, tidyAnswer, usedToday, type Quota, type Source } from '../assistant/grounded.js';
 import { config } from '../config.js';
+import { cached } from '../lib/cache.js';
 import { logger } from '../lib/logger.js';
 import { answerLlmAvailable, generateJson } from '../llm/provider.js';
 import { optionalAuth } from '../middleware/auth.js';
+import { assistantLimit } from '../middleware/limits.js';
 import { AssistantAnswerModel } from '../models/AssistantAnswer.js';
 import { QuestionModel } from '../models/Question.js';
 import { TopicModel } from '../models/Topic.js';
 import { courseCatalog } from '../search/catalog.js';
 import { parseQuery, type SearchFilters } from '../search/parseQuery.js';
 import { searchQuestions, type SearchHit, type SearchResponse } from '../search/search.js';
-import { cached, overview, parseLenient, type AnalyticsFilters } from './analytics.js';
+import { overview, parseLenient, type AnalyticsFilters } from './analytics.js';
 
 /**
  * The study assistant, answered from retrieval alone: no language model runs
@@ -125,7 +126,7 @@ type Reply = {
  * two different students have asked it, so one account can't push a crafted
  * answer to everyone through a shared link.
  */
-assistantRouter.post('/', rateLimit({ windowMs: 60_000, limit: 30 }), optionalAuth, async (req, res) => {
+assistantRouter.post('/', assistantLimit, optionalAuth, async (req, res) => {
   const t = Date.now();
   const { question, filters: rawFilters } = body.parse(req.body);
   const f = parseLenient(rawFilters ?? {}, { limit: 10 });

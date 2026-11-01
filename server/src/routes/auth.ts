@@ -1,18 +1,17 @@
 import argon2 from 'argon2';
 import { Router, type Request, type Response } from 'express';
-import { rateLimit } from 'express-rate-limit';
 import { z } from 'zod';
 import { sendVerificationEmail } from '../auth/mail.js';
 import { REFRESH_TTL_DAYS, hashToken, issueRefreshToken, newVerificationToken, revokeRefreshToken, rotateRefreshToken, signAccessToken } from '../auth/tokens.js';
 import { config, isProd } from '../config.js';
 import { HttpError, badRequest, conflict, notFound, unauthorized } from '../lib/errors.js';
 import { requireAuth } from '../middleware/auth.js';
+import { authPerIp, loginPerAccount, refreshLimit } from '../middleware/limits.js';
 import { UserModel, publicUser } from '../models/User.js';
 
 export const authRouter = Router();
 
-// Slow down password guessing and sign-up spam.
-authRouter.use(rateLimit({ windowMs: 15 * 60_000, limit: 30, standardHeaders: 'draft-8', legacyHeaders: false }));
+// Rate limits are per route (middleware/limits.ts): campus Wi-Fi puts many students behind one IP.
 
 const COOKIE = 'cq_refresh';
 const cookieOptions = {
@@ -44,7 +43,7 @@ async function startVerification(user: InstanceType<typeof UserModel>) {
   await sendVerificationEmail(user.email, user.name, `${apiBase()}/api/auth/verify-email?token=${t.raw}`);
 }
 
-authRouter.post('/register', async (req, res) => {
+authRouter.post('/register', authPerIp, async (req, res) => {
   const body = registerBody.parse(req.body);
   if (await UserModel.exists({ email: body.email })) throw conflict('An account with this email already exists');
   // argon2id: memory-hard, so guessing passwords on GPUs is expensive. The salt is stored inside the hash.
@@ -54,7 +53,7 @@ authRouter.post('/register', async (req, res) => {
   res.status(201).json({ user: publicUser(user), message: 'Check your email for a verification link' });
 });
 
-authRouter.get('/verify-email', async (req, res) => {
+authRouter.get('/verify-email', authPerIp, async (req, res) => {
   const token = z.string().min(10).parse(req.query.token);
   const user = await UserModel.findOne({ verifyTokenHash: hashToken(token), verifyExpires: { $gt: new Date() } });
   if (!user) throw badRequest('This verification link is invalid or has expired');
@@ -66,7 +65,7 @@ authRouter.get('/verify-email', async (req, res) => {
   else res.json({ ok: true });
 });
 
-authRouter.post('/resend-verification', async (req, res) => {
+authRouter.post('/resend-verification', authPerIp, loginPerAccount, async (req, res) => {
   const { email: address } = z.object({ email: z.email() }).parse(req.body);
   const user = await UserModel.findOne({ email: address.toLowerCase() });
   // Same answer whether or not the account exists, so this can't be used to discover emails.
@@ -79,7 +78,7 @@ function sendSession(res: Response, user: InstanceType<typeof UserModel>, refres
   res.json({ accessToken: signAccessToken(user.id, user.role), user: publicUser(user) });
 }
 
-authRouter.post('/login', async (req, res) => {
+authRouter.post('/login', authPerIp, loginPerAccount, async (req, res) => {
   const body = z.object({ email: z.email(), password: z.string().min(1) }).parse(req.body);
   const user = await UserModel.findOne({ email: body.email.toLowerCase() }).select('+passwordHash');
   // Same message for unknown email and wrong password.
@@ -88,7 +87,7 @@ authRouter.post('/login', async (req, res) => {
   sendSession(res, user, await issueRefreshToken(user.id, undefined, req.get('user-agent')));
 });
 
-authRouter.post('/refresh', async (req: Request, res) => {
+authRouter.post('/refresh', refreshLimit, async (req: Request, res) => {
   const token = req.cookies?.[COOKIE];
   if (!token) throw unauthorized('No refresh token');
   try {

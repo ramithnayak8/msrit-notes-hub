@@ -23,6 +23,8 @@ const sourceDocumentSchema = new Schema(
     fileSize: { type: Number },
     mimeType: { type: String },
     sourceUrl: { type: String },
+    // False once the stored copy was pruned (npm run files:prune): the file is then opened at sourceUrl.
+    fileStored: { type: Boolean, default: true },
 
     status: { type: String, enum: DOC_STATUSES, default: 'queued', index: true },
     pageCount: { type: Number },

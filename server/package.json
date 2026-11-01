@@ -13,7 +13,8 @@
     "db:indexes": "tsx --env-file-if-exists=.env src/scripts/ensure-indexes.ts",
     "user:role": "tsx --env-file-if-exists=.env src/scripts/set-role.ts",
     "import:papers": "tsx --env-file-if-exists=.env src/scripts/import-papers.ts",
-    "eval": "tsx --env-file-if-exists=.env src/scripts/eval.ts"
+    "eval": "tsx --env-file-if-exists=.env src/scripts/eval.ts",
+    "files:prune": "tsx --env-file-if-exists=.env src/scripts/prune-files.ts"
   },
   "dependencies": {
     "@google/genai": "^2.27.0",

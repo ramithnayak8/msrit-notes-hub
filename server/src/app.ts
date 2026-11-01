@@ -23,7 +23,7 @@ import { topicsRouter } from './routes/topics.js';
 
 export function createApp() {
   const app = express();
-  app.set('trust proxy', 1); // behind Render/Railway's proxy, so rate limits see the real client IP
+  app.set('trust proxy', config.TRUST_PROXY); // how many proxies to look past for the real client IP (see config)
 
   // Order matters: security headers and CORS first, then body parsing, then logging, then routes.
   app.use(helmet());

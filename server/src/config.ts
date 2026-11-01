@@ -28,6 +28,9 @@ const schema = z.object({
   CLAUDE_CODE_MODEL: z.string().default('sonnet'),
   CLAUDE_CODE_BIN: z.string().optional(),
   RUN_WORKER: bool.default(true),
+  // Proxies in front of the API that append to X-Forwarded-For, so rate limits see the student's IP.
+  // 1 behind one proxy (Render, a load balancer); 2 when the site is on Vercel and forwards /api to a proxied host.
+  TRUST_PROXY: z.coerce.number().int().min(0).default(1),
   // The study assistant writes its answers with Gemini/Groq (never Claude Code) from retrieved archive data.
   // Off: answers are composed from retrieval alone, as before.
   ASSISTANT_LLM: bool.default(true),
