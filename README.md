@@ -22,7 +22,7 @@ npm run dev:client   # site on http://localhost:3000
 
 The site reads everything from the API except the past-papers library (links to papers on
 other student sites), which lives in a local SQLite file built by `npm run seed -w client`.
-Sign in at `/login`; uploaders and moderators get `/upload`.
+Sign in at `/login`; uploaders and moderators get `/upload`, moderators get `/dashboard`.
 
 ## Setting up the backend the first time
 
@@ -113,6 +113,8 @@ mode and reports Recall@10 and MRR.
 | POST | `/api/assistant` | Study assistant: `{question, filters?}`; retrieval, then a cited AI answer for signed-in students |
 | GET/POST/PATCH | `/api/topics` | Vocabulary; approve, rename or merge topics (moderator) |
 | GET/POST | `/api/review` · `/api/review/:id/resolve` | Moderation queue |
+| GET/PATCH/DELETE | `/api/admin/summary` · `/api/admin/users` · `/api/admin/users/:id` | Dashboard numbers, accounts and roles (moderator) |
+| POST | `/api/topics/approve` | Approve many proposed topics at once (moderator) |
 | PATCH | `/api/questions/:id` | Correct a question; it is re-embedded (moderator) |
 
 ## Deploying the API
@@ -143,29 +145,19 @@ behind one IP (`server/src/middleware/limits.ts`).
 npm run seed -w client   # builds client/data/msrit.db from client/data/sources/external-papers.json
 ```
 
-## Dashboard (runs without the API server)
+## Dashboard (moderators)
 
-`/dashboard` shows sign-in, roles and CRUD on notes using only the client's local SQLite
-file, so it works with just `npm run dev:client` (after `npm run seed -w client`). It has
-its own accounts, separate from the main sign-in on the API server, and they are created on
-first use:
+`/dashboard` is where moderators keep the archive right, on the same accounts as the rest of
+the site. The link appears only for moderators, and every action is checked again by the API.
 
-| Account | Password | Role | Can |
-| ------- | -------- | ---- | --- |
-| admin@msrit.edu | admin123 | admin | everything below, plus edit or delete any note and manage users |
-| uploader@msrit.edu | uploader123 | uploader | create notes, edit their own |
-| student@msrit.edu | student123 | user | read |
+- **Review queue**: questions the pipeline wasn't sure about (unclear splits, scanned text):
+  fix the text and marks (the question is re-indexed) or dismiss.
+- **Topics**: approve proposed topics one by one or in bulk, rename, or merge a duplicate
+  into an existing topic (its questions are re-tagged).
+- **Papers**: processing status, reprocess, delete.
+- **Users**: search accounts, change roles (student, uploader, moderator), delete accounts.
+  Moderators can't change their own role or delete themselves.
+- At a glance: papers, questions, topics waiting, AI answers used today, and database storage
+  against the free tier's 512 MB.
 
-Passwords are hashed with scrypt; the session is an httpOnly cookie signed with HMAC
-(`SESSION_SECRET`). Every rule is checked in the route handlers under
-`client/src/app/api/demo/`:
-
-| Method | Endpoint | Who |
-| ------ | -------- | --- |
-| POST | `/api/demo/auth/login` · `/register` · `/logout` | anyone |
-| GET | `/api/demo/auth/me` | anyone |
-| GET | `/api/demo/notes` | anyone |
-| POST | `/api/demo/notes` | uploader |
-| PATCH | `/api/demo/notes/:id` | uploader (own notes), admin (any) |
-| DELETE | `/api/demo/notes/:id` | admin |
-| GET | `/api/demo/users` · PATCH/DELETE `/api/demo/users/:id` | admin |
+Make the first moderator from the command line: `npm run user:role -w server -- you@msrit.edu moderator`.

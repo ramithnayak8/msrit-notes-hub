@@ -1,7 +1,7 @@
 import type { NextFunction, Request, Response } from 'express';
 import { verifyAccessToken } from '../auth/tokens.js';
 import { forbidden, unauthorized } from '../lib/errors.js';
-import { hasRole, type Role } from '../models/User.js';
+import { UserModel, hasRole, type Role } from '../models/User.js';
 
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
@@ -39,9 +39,17 @@ export function requireAuth(req: Request, _res: Response, next: NextFunction) {
   next();
 }
 
-/** Role check; moderators pass uploader checks too. Use after requireAuth. */
-export const requireRole = (role: Role) => (req: Request, _res: Response, next: NextFunction) => {
+/**
+ * Role check; moderators pass uploader checks too. Use after requireAuth.
+ * The role is read from the database, not the 15-minute access token, so a
+ * demoted or deleted account loses its powers at once instead of when the
+ * token expires. One indexed lookup, only on privileged routes.
+ */
+export const requireRole = (role: Role) => async (req: Request, _res: Response, next: NextFunction) => {
   if (!req.user) throw unauthorized();
+  const current = await UserModel.findById(req.user.id).select('role').lean();
+  if (!current) throw unauthorized('This account no longer exists');
+  req.user.role = current.role as Role;
   if (!hasRole(req.user.role, role)) throw forbidden(`Requires the ${role} role`);
   next();
 };

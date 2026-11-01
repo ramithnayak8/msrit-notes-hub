@@ -11,6 +11,7 @@ import { llmProviders } from './llm/provider.js';
 import { EMBEDDING_MODEL } from './ml/embedder.js';
 import { errorHandler, notFoundHandler } from './middleware/errors.js';
 import { JobModel } from './models/Job.js';
+import { adminRouter } from './routes/admin.js';
 import { analyticsRouter } from './routes/analytics.js';
 import { assistantRouter } from './routes/assistant.js';
 import { authRouter } from './routes/auth.js';
@@ -46,6 +47,7 @@ export function createApp() {
         topics: 'GET /api/topics',
         analytics: 'GET /api/analytics/topics | /distribution?by=year | /recurring | /stats',
         moderation: 'GET /api/review (moderator)',
+        admin: 'GET /api/admin/summary | /users, PATCH/DELETE /api/admin/users/:id (moderator)',
         health: 'GET /api/health',
       },
     });
@@ -69,6 +71,7 @@ export function createApp() {
   app.use('/api/review', reviewRouter);
   app.use('/api/analytics', analyticsRouter);
   app.use('/api/assistant', assistantRouter);
+  app.use('/api/admin', adminRouter);
   app.use('/api', browseRouter);
 
   app.get('/api/jobs/:id', async (req, res) => {

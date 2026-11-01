@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import { Icon } from '@/components/ui/Icon';
 import { useStudyRoom } from '@/components/study/StudyRoomProvider';
 import { useFocus } from '@/components/study/FocusProvider';
+import { isModerator, useAuth } from '@/lib/client/auth';
 import { AccountButton } from './AccountButton';
 
 export const NAV_LINKS = [
@@ -15,7 +16,6 @@ export const NAV_LINKS = [
   { href: '/courses', label: 'Courses' },
   { href: '/analytics', label: 'Insights' },
   { href: '/assistant', label: 'Assistant' },
-  { href: '/dashboard', label: 'Dashboard' },
 ];
 
 export function Masthead() {
@@ -23,6 +23,9 @@ export function Masthead() {
   const { open, overlay } = useStudyRoom();
   const focus = useFocus();
   const [menuOpen, setMenuOpen] = useState(false);
+  // The dashboard is for moderators; everyone else never sees the link (the page and API check again).
+  const { user } = useAuth();
+  const links = isModerator(user) ? [...NAV_LINKS, { href: '/dashboard', label: 'Dashboard' }] : NAV_LINKS;
 
   // Close the mobile menu on navigation and on Escape.
   useEffect(() => setMenuOpen(false), [pathname]);
@@ -51,7 +54,7 @@ export function Masthead() {
         </Link>
 
         <nav className="nav-links" aria-label="Main">
-          {NAV_LINKS.map((link) => (
+          {links.map((link) => (
             <Link
               key={link.href}
               href={link.href}
@@ -127,7 +130,7 @@ export function Masthead() {
       {menuOpen && (
         <div id="mobile-menu" className="mobile-menu">
           <nav aria-label="Mobile">
-            {[{ href: '/', label: 'Home' }, ...NAV_LINKS, { href: '/shelf', label: 'My shelf' }, { href: '/about', label: 'About' }].map((link) => {
+            {[{ href: '/', label: 'Home' }, ...links, { href: '/shelf', label: 'My shelf' }, { href: '/about', label: 'About' }].map((link) => {
               const current = link.href === '/' ? pathname === '/' : isActive(link.href);
               return (
                 <Link

@@ -11,9 +11,8 @@ const nextConfig = {
 
   // /api/* is forwarded to the Express server, so the browser only ever talks
   // to this origin: no CORS, and the httpOnly refresh cookie is first-party.
-  // A fallback rewrite runs after all of this app's own routes, dynamic ones
-  // included, so /api/catalog (the local past-papers library) and /api/demo/*
-  // (the dashboard, e.g. /api/demo/notes/:id) are still served from here.
+  // A fallback rewrite runs after all of this app's own routes, so
+  // /api/catalog (the local past-papers library) is still served from here.
   async rewrites() {
     return { fallback: [{ source: '/api/:path*', destination: `${API_URL}/api/:path*` }] };
   },

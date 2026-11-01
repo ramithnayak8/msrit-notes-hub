@@ -30,6 +30,18 @@ topicsRouter.post('/', requireAuth, requireRole('moderator'), async (req, res) =
   res.status(201).json({ topic });
 });
 
+/** Approve many proposed topics at once (a first batch of papers proposes hundreds). */
+topicsRouter.post('/approve', requireAuth, requireRole('moderator'), async (req, res) => {
+  const { names } = z.object({ names: z.array(z.string()).min(1).max(1000) }).parse(req.body);
+  const r = await TopicModel.updateMany({ name: { $in: names }, status: 'proposed', mergedInto: { $exists: false } }, { $set: { status: 'approved' } });
+  await ReviewItemModel.updateMany(
+    { type: 'topic', topicName: { $in: names }, status: 'open' },
+    { $set: { status: 'resolved', resolvedBy: req.user!.id, resolvedAt: new Date(), resolution: 'approved' } },
+  );
+  invalidateVocabulary();
+  res.json({ approved: r.modifiedCount });
+});
+
 /**
  * Moderate a topic: approve it, rename its label, or merge it into another
  * topic (every question tagged with it is re-tagged with the target).

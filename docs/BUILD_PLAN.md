@@ -47,8 +47,8 @@ deployed server only serves search and the API (`RUN_WORKER=false`).
 
 ### Wed 4 Nov: deployment code
 - Original PDFs move from GridFS to R2.
-- Past-papers library moves from the client's SQLite file into Mongo; `/dashboard` is hidden or
-  folded into the main sign-in.
+- `/dashboard` rebuilt as the moderators' dashboard on the real accounts (review queue, topics,
+  papers, users); the separate demo sign-in is removed.
 - Server Dockerfile, production env template, worker off on the server.
 - Cache for popular searches; rate limits tuned for exam week.
 - Ingest the first batch of papers locally.
@@ -77,7 +77,7 @@ deployed server only serves search and the API (`RUN_WORKER=false`).
 1. Load test (use the capacity estimate instead).
 2. Diagram flags and tags (keep only the "View on page N" link).
 3. R2 (link to the original Drive URLs instead of hosting the PDFs).
-4. `/dashboard` merge (hide it instead).
+4. Moving the past-papers library out of the client's SQLite file (it's read-only, so it can ship as is).
 
 The insights page, the AI layer and deployment are not cut: they are graded or core to the goal.
 

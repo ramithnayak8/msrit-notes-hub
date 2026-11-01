@@ -22,6 +22,7 @@ reviewRouter.get('/', async (req, res) => {
     .sort({ createdAt: -1 })
     .limit(200)
     .populate('documentId', 'title courseCode year')
+    .populate('questionId', 'label text marks')
     .lean();
   const counts = await ReviewItemModel.aggregate([{ $match: { status: 'open' } }, { $group: { _id: '$type', n: { $sum: 1 } } }]);
   res.json({ items, openByType: Object.fromEntries(counts.map((c) => [c._id, c.n])) });
