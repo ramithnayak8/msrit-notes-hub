@@ -5,7 +5,13 @@ import { TopicModel } from '../models/Topic.js';
 import { ReviewItemModel } from '../models/ReviewItem.js';
 import { invalidateVocabulary, loadVocabulary, nearestTopics, resolveTopic } from './vocabulary.js';
 
-const CANDIDATES_PER_QUESTION = 15;
+const CANDIDATES_PER_QUESTION = 8;
+/**
+ * Candidates less similar than this are unrelated (bge-small: an EVS topic against a
+ * MapReduce question scores ~0.5, a matching topic 0.75+). Offering them anyway leads
+ * smaller models to copy them instead of proposing the right topic.
+ */
+const CANDIDATE_FLOOR = 0.65;
 const MAX_TOPICS = 3;
 const QUESTIONS_PER_CALL = 40;
 /** Without a language model, a vocabulary topic this close to the question is used as a tag. */
@@ -33,8 +39,8 @@ const tagSchema = z.object({
 const SYSTEM = `You tag university exam questions with the concepts they examine, for a topic-based search engine.
 Tag the CONCEPT being tested (e.g. "Banker's Algorithm", "AVL Tree Rotation", "Huffman Coding"), not the subject name or the question type.
 For each question:
-- Choose 1-${MAX_TOPICS} topics from its candidate list when they fit. Copy candidate names exactly.
-- Only when no candidate fits, propose up to 2 new topic names: 1-5 words, Title Case, concept-level, reusable across subjects (not "Question about stacks").
+- Choose 1-${MAX_TOPICS} topics from its candidate list only when they name what the question asks about. Copy candidate names exactly.
+- When no candidate fits (or there are none), leave "topics" empty and propose up to 2 new topic names: 1-5 words, Title Case, concept-level, reusable across subjects (not "Question about stacks").
 - Fewer accurate tags beat many loose ones.`;
 
 /**
@@ -48,7 +54,7 @@ export async function tagQuestions(
 ): Promise<TagResult> {
   const vocab = [...(await loadVocabulary())];
   const vectors = await embedPassages(questions.map((q) => q.text));
-  const candidates = vectors.map((v) => nearestTopics(vocab, v, CANDIDATES_PER_QUESTION, ctx.courseCode));
+  const candidates = vectors.map((v) => nearestTopics(vocab, v, CANDIDATES_PER_QUESTION, ctx.courseCode).filter((t) => t.score >= CANDIDATE_FLOOR));
   const labels: Record<string, string> = {};
 
   if (!llmAvailable()) {
