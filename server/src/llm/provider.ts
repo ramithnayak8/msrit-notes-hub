@@ -75,6 +75,37 @@ class GroqProvider implements Provider {
 }
 
 /**
+ * A model served by Ollama on this machine or the LAN. Costs nothing, works
+ * offline, and Ollama's structured outputs constrain the reply to the schema.
+ * Slower than the hosted models on a CPU, so it gets its own time limit.
+ */
+class OllamaProvider implements Provider {
+  name = 'ollama';
+
+  async generateJson<T>(req: JsonRequest<T>): Promise<T> {
+    const timeoutMs = Math.max(req.live?.timeoutMs ?? 0, config.OLLAMA_TIMEOUT_MS);
+    const res = await fetch(`${config.OLLAMA_URL.replace(/\/$/, '')}/api/chat`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      signal: AbortSignal.timeout(req.live ? timeoutMs : 600_000),
+      body: JSON.stringify({
+        model: config.OLLAMA_MODEL,
+        stream: false,
+        format: z.toJSONSchema(req.schema, { target: 'draft-7' }),
+        options: { temperature: 0, num_ctx: 8192 },
+        messages: [
+          { role: 'system', content: req.system },
+          { role: 'user', content: req.prompt },
+        ],
+      }),
+    });
+    if (!res.ok) throw new Error(`ollama ${res.status}: ${(await res.text()).slice(0, 300)}`);
+    const out = (await res.json()) as { message?: { content?: string } };
+    return req.schema.parse(JSON.parse(out.message?.content ?? ''));
+  }
+}
+
+/**
  * LOCAL DEVELOPMENT ONLY. Runs the Claude Code CLI in headless mode
  * (`claude -p`) on the developer's own logged-in account, so the model runs
  * on that person's Claude plan instead of an API key. It only works on a
@@ -127,6 +158,7 @@ const providers: Provider[] = [
   ...(config.USE_CLAUDE_CODE ? [new ClaudeCodeProvider()] : []),
   ...(config.GEMINI_API_KEY ? [new GeminiProvider()] : []),
   ...(config.GROQ_API_KEY ? [new GroqProvider()] : []),
+  ...(config.OLLAMA_MODEL ? [new OllamaProvider()] : []),
 ];
 
 export const llmAvailable = () => providers.length > 0;

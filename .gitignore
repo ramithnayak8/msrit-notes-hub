@@ -26,3 +26,6 @@ server/.env
 server/.model-cache/
 server/dist/
 
+
+# stray copy of the raw Drive listing at the repo root
+/data/

@@ -23,6 +23,11 @@ const schema = z.object({
   GEMINI_MODEL: z.string().default('gemini-flash-latest'),
   GROQ_API_KEY: z.string().optional(),
   GROQ_MODEL: z.string().default('llama-3.3-70b-versatile'),
+  // A model served by a local Ollama (e.g. qwen2.5:3b): free, offline, tried after Gemini/Groq. Empty = off.
+  OLLAMA_MODEL: z.string().optional(),
+  OLLAMA_URL: z.string().default('http://127.0.0.1:11434'),
+  // Local models on a CPU are slower than the hosted ones; the assistant waits at least this long for them.
+  OLLAMA_TIMEOUT_MS: z.coerce.number().int().min(1000).default(90_000),
   // Local development only: use the Claude Code CLI on your own logged-in account (see llm/provider.ts).
   USE_CLAUDE_CODE: bool.default(false),
   CLAUDE_CODE_MODEL: z.string().default('sonnet'),

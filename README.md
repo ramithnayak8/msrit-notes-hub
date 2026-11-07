@@ -56,6 +56,14 @@ own machine only, `USE_CLAUDE_CODE=true` to run Claude Code headless on your own
 Without any, everything else works and tagging falls back to nearest-topic matching on
 embeddings. Search never calls a model.
 
+No key? Run a model locally with [Ollama](https://ollama.com): `ollama pull qwen2.5:3b`, then
+`OLLAMA_MODEL=qwen2.5:3b` in `server/.env`. It is free, works offline, and is used for both
+ingestion and the study assistant (after Gemini/Groq when those are configured).
+
+On Windows, if the API exits right after "MongoDB connected", the system Visual C++ runtime is
+too old for the embedding model; `npm install` copies a current one next to onnxruntime
+(`scripts/fix-onnx-windows.mjs`), or install the latest VC++ Redistributable.
+
 The study assistant (`/assistant`, and "Ask about this view" on `/analytics`) always retrieves
 first: the closest questions, topic counts and the statistics for the slice. For a signed-in
 student with a Gemini or Groq key configured, a fast model (`ASSISTANT_MODEL`) then writes the
