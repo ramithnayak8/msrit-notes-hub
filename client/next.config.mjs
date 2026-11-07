@@ -9,6 +9,10 @@ const nextConfig = {
   // static, so blocking on it costs nothing.
   htmlLimitedBots: /.*/,
 
+  // The proxy below gives up after 30s by default; a study-assistant answer from a
+  // local model on a CPU (OLLAMA_MODEL) can take longer than that.
+  experimental: { proxyTimeout: 120_000 },
+
   // /api/* is forwarded to the Express server, so the browser only ever talks
   // to this origin: no CORS, and the httpOnly refresh cookie is first-party.
   // A fallback rewrite runs after all of this app's own routes, so
