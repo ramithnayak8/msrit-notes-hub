@@ -28,6 +28,8 @@ const schema = z.object({
   OLLAMA_URL: z.string().default('http://127.0.0.1:11434'),
   // Local models on a CPU are slower than the hosted ones; the assistant waits at least this long for them.
   OLLAMA_TIMEOUT_MS: z.coerce.number().int().min(1000).default(90_000),
+  // Ask the model to re-segment papers the rule-based parser can't follow. Off for a small local model (slow, long outputs).
+  SEGMENT_WITH_LLM: bool.default(true),
   // Local development only: use the Claude Code CLI on your own logged-in account (see llm/provider.ts).
   USE_CLAUDE_CODE: bool.default(false),
   CLAUDE_CODE_MODEL: z.string().default('sonnet'),

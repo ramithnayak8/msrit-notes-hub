@@ -1,5 +1,6 @@
 import { execFile } from 'node:child_process';
 import { existsSync } from 'node:fs';
+import { request as httpRequest } from 'node:http';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { GoogleGenAI } from '@google/genai';
@@ -83,26 +84,39 @@ class OllamaProvider implements Provider {
   name = 'ollama';
 
   async generateJson<T>(req: JsonRequest<T>): Promise<T> {
-    const timeoutMs = Math.max(req.live?.timeoutMs ?? 0, config.OLLAMA_TIMEOUT_MS);
-    const res = await fetch(`${config.OLLAMA_URL.replace(/\/$/, '')}/api/chat`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      signal: AbortSignal.timeout(req.live ? timeoutMs : 600_000),
-      body: JSON.stringify({
-        model: config.OLLAMA_MODEL,
-        stream: false,
-        format: z.toJSONSchema(req.schema, { target: 'draft-7' }),
-        options: { temperature: 0, num_ctx: 8192 },
-        messages: [
-          { role: 'system', content: req.system },
-          { role: 'user', content: req.prompt },
-        ],
-      }),
+    const timeoutMs = req.live ? Math.max(req.live.timeoutMs, config.OLLAMA_TIMEOUT_MS) : 20 * 60_000;
+    const body = JSON.stringify({
+      model: config.OLLAMA_MODEL,
+      stream: false,
+      format: z.toJSONSchema(req.schema, { target: 'draft-7' }),
+      options: { temperature: 0, num_ctx: 8192 },
+      messages: [
+        { role: 'system', content: req.system },
+        { role: 'user', content: req.prompt },
+      ],
     });
-    if (!res.ok) throw new Error(`ollama ${res.status}: ${(await res.text()).slice(0, 300)}`);
-    const out = (await res.json()) as { message?: { content?: string } };
+    // node:http rather than fetch: fetch gives up after 5 minutes without response headers,
+    // and Ollama sends none while a request waits its turn behind other ingestion workers.
+    const { status, text } = await postJson(`${config.OLLAMA_URL.replace(/\/$/, '')}/api/chat`, body, timeoutMs);
+    if (status !== 200) throw new Error(`ollama ${status}: ${text.slice(0, 300)}`);
+    const out = JSON.parse(text) as { message?: { content?: string } };
     return req.schema.parse(JSON.parse(out.message?.content ?? ''));
   }
+}
+
+function postJson(url: string, body: string, timeoutMs: number): Promise<{ status: number; text: string }> {
+  return new Promise((resolve, reject) => {
+    const r = httpRequest(url, { method: 'POST', headers: { 'content-type': 'application/json', 'content-length': Buffer.byteLength(body) } }, (res) => {
+      const chunks: Buffer[] = [];
+      res.on('data', (c: Buffer) => chunks.push(c));
+      res.on('end', () => resolve({ status: res.statusCode ?? 0, text: Buffer.concat(chunks).toString('utf8') }));
+      res.on('error', reject);
+    });
+    const timer = setTimeout(() => r.destroy(new Error(`ollama timed out after ${timeoutMs}ms`)), timeoutMs);
+    r.on('close', () => clearTimeout(timer));
+    r.on('error', reject);
+    r.end(body);
+  });
 }
 
 /**
@@ -162,6 +176,8 @@ const providers: Provider[] = [
 ];
 
 export const llmAvailable = () => providers.length > 0;
+/** Re-segmenting a paper means the model writes out every question: slow on a small local model, so it can be turned off. */
+export const segmentLlmAvailable = () => config.SEGMENT_WITH_LLM && llmAvailable();
 /** API-key providers only: what may answer students at request time (Claude Code is a personal login, for local ingestion only). */
 const apiProviders = providers.filter((p) => p.name !== 'claude-code');
 export const answerLlmAvailable = () => apiProviders.length > 0;

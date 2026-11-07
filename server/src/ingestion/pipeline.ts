@@ -1,7 +1,7 @@
 import { Types } from 'mongoose';
 import { filesBucket, nativeDb } from '../db.js';
 import { logger } from '../lib/logger.js';
-import { llmAvailable } from '../llm/provider.js';
+import { llmAvailable, segmentLlmAvailable } from '../llm/provider.js';
 import { EMBEDDING_MODEL, cosine, embedPassages } from '../ml/embedder.js';
 import { JobModel, STAGES, type JobDoc, type Stage } from '../models/Job.js';
 import { QuestionModel } from '../models/Question.js';
@@ -62,14 +62,14 @@ async function segment({ doc, out }: Ctx): Promise<Outputs['segment']> {
   let regionsRepaired = 0;
 
   if (!r.parsed) {
-    if (llmAvailable()) {
+    if (segmentLlmAvailable()) {
       const allText = r.bodyText || pages.map((p) => p.text).join('\n');
       segments = await segmentWholeWithModel(allText);
       method = 'llm';
     } else {
       method = 'unparsed';
     }
-  } else if (llmAvailable() && segments.some((s) => s.confidence < LOW_CONFIDENCE)) {
+  } else if (segmentLlmAvailable() && segments.some((s) => s.confidence < LOW_CONFIDENCE)) {
     ({ segments, regionsRepaired } = await repairLowConfidence(segments));
     method = 'rules+llm';
   }
