@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { logger } from '../lib/logger.js';
 import { generateJson, llmAvailable } from '../llm/provider.js';
 import { embedPassages } from '../ml/embedder.js';
 import { TopicModel } from '../models/Topic.js';
@@ -14,6 +15,8 @@ const CANDIDATES_PER_QUESTION = 8;
 const CANDIDATE_FLOOR = 0.65;
 const MAX_TOPICS = 3;
 const QUESTIONS_PER_CALL = 40;
+/** Questions per follow-up call for the ones a reply left out. */
+const RETRY_GROUP = 6;
 /** Without a language model, a vocabulary topic this close to the question is used as a tag. */
 const EMBEDDING_ONLY_THRESHOLD = 0.78;
 
@@ -71,21 +74,34 @@ export async function tagQuestions(
   const newTopics: string[] = [];
   let llmCalls = 0;
 
-  for (let start = 0; start < questions.length; start += QUESTIONS_PER_CALL) {
-    const batch = questions.slice(start, start + QUESTIONS_PER_CALL);
+  // Each group is a list of question indexes for one call. Small local models often answer only
+  // part of a long batch, so skipped questions are asked again in short groups (once).
+  const groups: { ids: number[]; retry: boolean }[] = [];
+  for (let start = 0; start < questions.length; start += QUESTIONS_PER_CALL)
+    groups.push({ ids: questions.slice(start, start + QUESTIONS_PER_CALL).map((_, j) => start + j), retry: false });
+
+  for (let g = 0; g < groups.length; g++) {
+    const { ids, retry } = groups[g]!;
     const prompt =
       `Course: ${ctx.courseTitle ?? 'unknown'}${ctx.courseCode ? ` (${ctx.courseCode})` : ''}\n\n` +
-      batch
-        .map((q, j) => {
-          const cands = candidates[start + j]!.map((c) => c.label);
-          return `[${start + j}] ${q.text.slice(0, 700)}\nCandidates: ${cands.length ? cands.join(' | ') : '(none yet)'}`;
+      ids
+        .map((id) => {
+          const cands = candidates[id]!.map((c) => c.label);
+          return `[${id}] ${questions[id]!.text.slice(0, 700)}\nCandidates: ${cands.length ? cands.join(' | ') : '(none yet)'}`;
         })
-        .join('\n\n');
+        .join('\n\n') +
+      `\n\nAnswer for every question above: ids ${ids.join(', ')}.`;
     const { data } = await generateJson({ task: 'tag', system: SYSTEM, prompt, schema: tagSchema });
     llmCalls++;
+    const inGroup = new Set(ids);
+    const answered = new Set(data.questions.map((r) => r.id));
+    const missing = ids.filter((id) => !answered.has(id));
+    if (missing.length && !retry)
+      for (let i = 0; i < missing.length; i += RETRY_GROUP) groups.push({ ids: missing.slice(i, i + RETRY_GROUP), retry: true });
+    else if (missing.length) logger.warn({ documentId: ctx.documentId, missing }, 'Tagger skipped questions twice; they stay untagged');
 
     for (const r of data.questions) {
-      if (r.id < start || r.id >= start + batch.length) continue;
+      if (!inGroup.has(r.id)) continue;
       const own = candidates[r.id]!;
       const chosen: string[] = [];
       for (const label of r.topics) {

@@ -4,6 +4,7 @@
  *
  *   npm run retag -w server                 # every ingested paper
  *   npm run retag -w server -- CI51 CI54    # only these course codes
+ *   npm run retag -w server -- --untagged   # only papers with untagged questions
  */
 import { config } from '../config.js';
 import { connectDb, disconnectDb } from '../db.js';
@@ -12,6 +13,7 @@ import { QuestionModel } from '../models/Question.js';
 import { SourceDocumentModel } from '../models/SourceDocument.js';
 
 const codes = process.argv.slice(2).filter((a) => !a.startsWith('--'));
+const onlyUntagged = process.argv.includes('--untagged');
 await connectDb(config.MONGODB_URI);
 const docs = await SourceDocumentModel.find({ status: { $in: ['ready', 'needs_review'] }, ...(codes.length && { courseCode: { $in: codes } }) })
   .select('fileName courseCode courseTitle')
@@ -19,6 +21,7 @@ const docs = await SourceDocumentModel.find({ status: { $in: ['ready', 'needs_re
 for (const doc of docs) {
   const questions = await QuestionModel.find({ documentId: doc._id }).sort({ order: 1 }).select('text').lean();
   if (!questions.length) continue;
+  if (onlyUntagged && !(await QuestionModel.exists({ documentId: doc._id, topics: { $size: 0 } }))) continue;
   const t = Date.now();
   const r = await tagQuestions(questions, { courseCode: doc.courseCode ?? undefined, courseTitle: doc.courseTitle ?? undefined, documentId: String(doc._id) });
   await QuestionModel.bulkWrite(questions.map((q, i) => ({ updateOne: { filter: { _id: q._id }, update: { $set: { topics: r.topics[i] ?? [] } } } })));

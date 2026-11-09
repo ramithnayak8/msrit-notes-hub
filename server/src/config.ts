@@ -21,6 +21,13 @@ const schema = z.object({
   MAIL_FROM: z.string().default('ConceptQuery <no-reply@conceptquery.local>'),
   GEMINI_API_KEY: z.string().optional(),
   GEMINI_MODEL: z.string().default('gemini-flash-latest'),
+  // Claude through the Anthropic API: tried after Gemini, before Groq and Ollama.
+  ANTHROPIC_API_KEY: z.string().optional(),
+  ANTHROPIC_MODEL: z.string().default('claude-opus-5-5'),
+  // Thinking depth for ingestion calls (live assistant answers always use 'low').
+  ANTHROPIC_EFFORT: z.enum(['low', 'medium', 'high', 'xhigh', 'max']).default('low'),
+  // The assistant waits at least this long for Claude (it thinks before answering, so 12s can be tight).
+  ANTHROPIC_LIVE_TIMEOUT_MS: z.coerce.number().int().min(1000).default(45_000),
   GROQ_API_KEY: z.string().optional(),
   GROQ_MODEL: z.string().default('llama-3.3-70b-versatile'),
   // A model served by a local Ollama (e.g. qwen2.5:3b): free, offline, tried after Gemini/Groq. Empty = off.
@@ -38,7 +45,7 @@ const schema = z.object({
   // Proxies in front of the API that append to X-Forwarded-For, so rate limits see the student's IP.
   // 1 behind one proxy (Render, a load balancer); 2 when the site is on Vercel and forwards /api to a proxied host.
   TRUST_PROXY: z.coerce.number().int().min(0).default(1),
-  // The study assistant writes its answers with Gemini/Groq (never Claude Code) from retrieved archive data.
+  // The study assistant writes its answers with Gemini, Claude (API), Groq or Ollama (never Claude Code) from retrieved archive data.
   // Off: answers are composed from retrieval alone, as before.
   ASSISTANT_LLM: bool.default(true),
   // A fast model, since a student is waiting (about 1s for Flash-Lite against 30s+ for Flash). Gemini only; Groq uses GROQ_MODEL.

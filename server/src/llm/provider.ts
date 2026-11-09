@@ -3,6 +3,8 @@ import { existsSync } from 'node:fs';
 import { request as httpRequest } from 'node:http';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import Anthropic from '@anthropic-ai/sdk';
+import { betaZodOutputFormat } from '@anthropic-ai/sdk/helpers/beta/zod';
 import { GoogleGenAI } from '@google/genai';
 import Groq from 'groq-sdk';
 import { z } from 'zod';
@@ -50,6 +52,36 @@ class GeminiProvider implements Provider {
       },
     });
     return req.schema.parse(JSON.parse(res.text ?? ''));
+  }
+}
+
+/**
+ * Claude through the Anthropic API. Structured outputs constrain the reply to
+ * the schema; the server-side fallback re-runs a declined request on another
+ * model inside the same call, so a refusal is rare and simply retried.
+ */
+class AnthropicProvider implements Provider {
+  name = 'anthropic';
+  private client = new Anthropic({ apiKey: config.ANTHROPIC_API_KEY!, maxRetries: 0 });
+
+  async generateJson<T>(req: JsonRequest<T>): Promise<T> {
+    const res = await this.client.beta.messages.parse(
+      {
+        model: config.ANTHROPIC_MODEL,
+        max_tokens: 16000,
+        betas: ['server-side-fallback-2026-07-01'],
+        fallbacks: 'default',
+        system: req.system,
+        messages: [{ role: 'user', content: req.prompt }],
+        // Students are waiting on live calls, and tagging is classification: neither needs deep thinking.
+        output_config: { format: betaZodOutputFormat(req.schema), effort: req.live ? 'low' : config.ANTHROPIC_EFFORT },
+      },
+      { timeout: req.live ? Math.max(req.live.timeoutMs, config.ANTHROPIC_LIVE_TIMEOUT_MS) : 10 * 60_000 },
+    );
+    if (res.stop_reason === 'refusal') throw new Error(`anthropic declined (${res.stop_details?.category ?? 'no category'})`);
+    if (res.stop_reason === 'max_tokens') throw new Error('anthropic reply hit max_tokens');
+    if (res.parsed_output == null) throw new Error('anthropic reply did not match the schema');
+    return req.schema.parse(res.parsed_output);
   }
 }
 
@@ -171,6 +203,7 @@ function claudeBinary() {
 const providers: Provider[] = [
   ...(config.USE_CLAUDE_CODE ? [new ClaudeCodeProvider()] : []),
   ...(config.GEMINI_API_KEY ? [new GeminiProvider()] : []),
+  ...(config.ANTHROPIC_API_KEY ? [new AnthropicProvider()] : []),
   ...(config.GROQ_API_KEY ? [new GroqProvider()] : []),
   ...(config.OLLAMA_MODEL ? [new OllamaProvider()] : []),
 ];
@@ -180,6 +213,12 @@ export const llmAvailable = () => providers.length > 0;
 export const segmentLlmAvailable = () => config.SEGMENT_WITH_LLM && llmAvailable();
 /** API-key providers only: what may answer students at request time (Claude Code is a personal login, for local ingestion only). */
 const apiProviders = providers.filter((p) => p.name !== 'claude-code');
+/**
+ * Live calls (a student waiting) skip Ollama when a hosted model is configured: on a CPU it needs
+ * minutes, so a hosted hiccup falling through to it would stall the answer instead of falling back to retrieval.
+ */
+const hosted = apiProviders.filter((p) => p.name !== 'ollama');
+const liveProviders = hosted.length ? hosted : apiProviders;
 export const answerLlmAvailable = () => apiProviders.length > 0;
 export const llmProviders = () => providers.map((p) => p.name);
 
@@ -193,7 +232,7 @@ const ATTEMPTS = 4;
  * `apiOnly` skips Claude Code; `attempts` caps retries for calls a person is waiting on.
  */
 export async function generateJson<T>(req: JsonRequest<T>, opts: { apiOnly?: boolean; attempts?: number } = {}): Promise<{ data: T; provider: string }> {
-  const chain = opts.apiOnly ? apiProviders : providers;
+  const chain = opts.apiOnly ? liveProviders : providers;
   const attempts = opts.attempts ?? ATTEMPTS;
   if (!chain.length) throw new LlmUnavailableError('No language model API key configured');
   let lastErr: unknown;
