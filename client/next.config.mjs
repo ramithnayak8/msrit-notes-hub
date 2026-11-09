@@ -13,6 +13,10 @@ const nextConfig = {
   // local model on a CPU (OLLAMA_MODEL) can take longer than that.
   experimental: { proxyTimeout: 120_000 },
 
+  // lib/db.ts opens this file by a path built at runtime, which file tracing can't follow;
+  // without this a serverless deployment would ship the pages without the library.
+  outputFileTracingIncludes: { '/*': ['./data/msrit.db'], '/**/*': ['./data/msrit.db'] },
+
   // /api/* is forwarded to the Express server, so the browser only ever talks
   // to this origin: no CORS, and the httpOnly refresh cookie is first-party.
   // A fallback rewrite runs after all of this app's own routes, so

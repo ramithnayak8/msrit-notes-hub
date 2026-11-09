@@ -9,6 +9,8 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 COPY server/package.json server/
 COPY client/package.json client/
+# The root postinstall script (a Windows-only fix that exits at once on Linux) must exist for npm ci.
+COPY scripts/ scripts/
 RUN npm ci --workspace server
 COPY server/ server/
 RUN npm run build --workspace server
@@ -19,6 +21,8 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 COPY server/package.json server/
 COPY client/package.json client/
+# The root postinstall script (a Windows-only fix that exits at once on Linux) must exist for npm ci.
+COPY scripts/ scripts/
 RUN npm ci --workspace server --omit=dev && npm cache clean --force
 COPY --from=build /app/server/dist server/dist
 COPY server/data server/data

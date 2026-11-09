@@ -9,12 +9,13 @@ const dbDir = join(root, 'data');
 const dbPath = join(dbDir, 'msrit.db');
 
 mkdirSync(dbDir, { recursive: true });
-if (existsSync(dbPath)) rmSync(dbPath);
+for (const f of [dbPath, `${dbPath}-wal`, `${dbPath}-shm`]) if (existsSync(f)) rmSync(f);
 
 const db = new DatabaseSync(dbPath);
 
 db.exec(`
-  PRAGMA journal_mode = WAL;
+  -- One self-contained file (no -wal/-shm): the site opens it read-only, and serverless hosts have a read-only disk.
+  PRAGMA journal_mode = DELETE;
 
   CREATE TABLE departments (
     code        TEXT PRIMARY KEY,

@@ -127,6 +127,8 @@ mode and reports Recall@10 and MRR.
 
 ## Deploying the API
 
+Full walkthrough (Atlas, Render, Vercel, environment variables): [docs/DEPLOY.md](docs/DEPLOY.md).
+
 ```bash
 docker build -f server/Dockerfile -t conceptquery-api .      # from the repo root
 docker run --env-file server/.env -e NODE_ENV=production -p 4000:4000 conceptquery-api

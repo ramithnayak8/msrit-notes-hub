@@ -14,7 +14,8 @@ const globalForDb = globalThis as unknown as { __msritDb?: DatabaseSync };
 
 export function db(): DatabaseSync {
   if (!globalForDb.__msritDb) {
-    globalForDb.__msritDb = new DatabaseSync(dbPath);
+    // Read-only: the site never writes it, and a deployed function's disk is read-only.
+    globalForDb.__msritDb = new DatabaseSync(dbPath, { readOnly: true });
   }
   return globalForDb.__msritDb;
 }
