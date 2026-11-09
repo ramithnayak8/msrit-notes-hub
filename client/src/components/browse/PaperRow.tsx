@@ -1,5 +1,4 @@
 import { Icon, type IconName } from '@/components/ui/Icon';
-import { PAPER_SOURCES } from '@/lib/sources';
 import type { ExternalPaper } from '@/lib/types';
 
 const KIND: Record<ExternalPaper['kind'], { icon: IconName; label: string }> = {
@@ -10,9 +9,8 @@ const KIND: Record<ExternalPaper['kind'], { icon: IconName; label: string }> = {
 };
 
 /** One past paper hosted elsewhere. Opens the original file on Google Drive in a new tab. */
-export function PaperRow({ paper, showSource = true }: { paper: ExternalPaper; showSource?: boolean }) {
+export function PaperRow({ paper }: { paper: ExternalPaper }) {
   const kind = KIND[paper.kind];
-  const source = PAPER_SOURCES[paper.source];
   const when = [paper.month, paper.year].filter(Boolean).join(' ');
   const branches = (paper.branch ?? '').split(', ').filter(Boolean);
   const branchText = branches.length > 2 ? `${branches.slice(0, 2).join(', ')} +${branches.length - 2}` : branches.join(', ');
@@ -26,7 +24,6 @@ export function PaperRow({ paper, showSource = true }: { paper: ExternalPaper; s
             <span className="paper-kind"><Icon name={kind.icon} size={13} /> {kind.label}</span>
             {when && <span>· {when}</span>}
             {branchText && <span title={paper.branch ?? undefined}>· {branchText}</span>}
-            {showSource && source && <span>· via {source.name}</span>}
           </span>
         </span>
         <span className="paper-open" aria-hidden>
