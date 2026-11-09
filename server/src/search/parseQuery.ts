@@ -128,11 +128,19 @@ export function parseQuery(raw: string, courses: Course[] = [], now = new Date()
   }
   if (codes.size) for (const code of codes) q = q.replace(new RegExp(`\\b${code}\\b`, 'ig'), ' ');
   if (!codes.size) {
-    const byTitle = [...courses].sort((a, b) => b.title.length - a.title.length);
-    for (const c of byTitle) {
-      const title = c.title.toLowerCase();
+    // Full titles, plus the short name students use for "X with Y" titles
+    // ("Software Engineering with MLOps" -> "Software Engineering"); longest first.
+    const names = courses.flatMap((c) => {
+      const short = c.title.split(/\s+with\s+/i)[0]!.trim();
+      return short !== c.title && short.includes(' ') ? [c.title, short] : [c.title];
+    });
+    const nameOf = (c: Course, name: string) => c.title.toLowerCase() === name || c.title.toLowerCase().split(/\s+with\s+/)[0]!.trim() === name;
+    const byTitle = [...new Set(names)].sort((a, b) => b.length - a.length);
+    for (const name of byTitle) {
+      const title = name.toLowerCase();
       if (title.length > 3 && q.toLowerCase().includes(title)) {
-        for (const x of courses) if (x.title.toLowerCase() === title) filterCodesOf(x).forEach((code) => codes.add(code));
+        const c = courses.find((x) => nameOf(x, title))!;
+        for (const x of courses) if (nameOf(x, title)) filterCodesOf(x).forEach((code) => codes.add(code));
         if (codes.size) {
           courseTitle = c.title;
           q = q.replace(new RegExp(title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'ig'), ' ');

@@ -39,6 +39,12 @@ describe('parseQuery', () => {
     expect(parseQuery('data structures stack', courses, now)).toMatchObject({ filters: { courseCodes: ['CS33'] }, text: 'stack' });
   });
 
+  it('matches the short name of a "X with Y" course title', () => {
+    const catalog = [{ code: 'CI54', title: 'Software Engineering with MLOps' }];
+    expect(parseQuery('What should I revise for Software Engineering?', catalog, now)).toMatchObject({ filters: { courseCodes: ['CI54'] } });
+    expect(parseQuery('software engineering with mlops agile', catalog, now)).toMatchObject({ filters: { courseCodes: ['CI54'] }, text: 'agile' });
+  });
+
   it('only treats two-letter branch codes as branches in capitals', () => {
     expect(parseQuery('what is a heap', courses, now).filters.branch).toBeUndefined();
     expect(parseQuery('IS heap', courses, now).filters.branch).toBe('ISE');
