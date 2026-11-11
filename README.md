@@ -71,6 +71,48 @@ answer from that data only, citing the questions it used; signed-out visitors, s
 the daily cap and any model failure get the retrieval answer instead. Written answers are cached
 for 3 days and shared once two students have asked the same thing.
 
+## Architecture
+
+```mermaid
+flowchart LR
+  subgraph Browser
+    UI["Next.js client<br/>search, insights, assistant, dashboard"]
+  end
+  subgraph API["Express API (TypeScript)"]
+    AUTH["Auth: JWT + rotating refresh tokens, roles"]
+    SEARCH["Search: query parser, BM25 + vector, rank fusion"]
+    ANA["Analytics: filters, KPIs, repeated questions"]
+    ASSIST["Study assistant: retrieve, then grounded answer"]
+    MOD["Moderation: review queue, topics, users"]
+    WORKER["Ingestion worker: extract, segment, tag, embed"]
+    EMB["bge-small-en-v1.5<br/>(local embeddings)"]
+  end
+  DB[("MongoDB / Atlas<br/>documents, questions, topics, users,<br/>GridFS files, Search + Vector indexes")]
+  LLM["Language model: Gemini, Claude (API), Groq or local Ollama<br/>(assistant answers, ingestion tagging)"]
+  MAIL["SMTP<br/>(verification email)"]
+
+  UI -- "/api/* (Next.js rewrite, same origin)" --> AUTH
+  UI --> SEARCH
+  UI --> ANA
+  UI --> ASSIST
+  UI --> MOD
+  AUTH --> DB
+  SEARCH --> DB
+  ANA --> DB
+  ASSIST --> DB
+  MOD --> DB
+  WORKER --> DB
+  WORKER --> EMB
+  SEARCH --> EMB
+  WORKER -. "low-confidence parsing, topic tagging" .-> LLM
+  ASSIST -. "signed-in students, daily caps" .-> LLM
+  AUTH -.-> MAIL
+```
+
+The assistant always retrieves from the archive first and only sends that retrieved data to the
+model, so answers are grounded and cited; if the model is unavailable it returns the retrieval
+answer on its own.
+
 ## How it works
 
 ### Ingestion (once per uploaded document, in a background worker)
